@@ -597,7 +597,7 @@ export function BroadcastMatchView({
         </div>
       )}
 
-      {/* ZONE 1: Center 2.5D Stadium Canvas + Kinetic TV Stingers */}
+      {/* ZONE 1: Center 3D WebGL Stadium Canvas + Floating Release/Timing Rings + Kinetic TV Stingers */}
       <main className="relative flex-1 min-h-0 p-2 sm:p-3 flex flex-col gap-2">
         <div className="relative flex-1 min-h-0">
           <StadiumCanvas
@@ -605,6 +605,7 @@ export function BroadcastMatchView({
             battingColor={battingLineup.kit.primary}
             bowlingColor={bowlingLineup.kit.primary}
             canPickTarget={Boolean(userControlsBowling && (phaseGate === "READY" || phaseGate === "BOWL_METER"))}
+            isBowlingCamera={Boolean(userControlsBowling && phaseGate !== "BAT_TIMING")}
             selectedLength={selectedLength}
             selectedLine={selectedLine}
             onPickTarget={(len, ln) => {
@@ -613,6 +614,63 @@ export function BroadcastMatchView({
             }}
             animation={animation}
           />
+
+          {/* Floating Curved Release Meter beside Bowler */}
+          {phaseGate === "BOWL_METER" && (
+            <button
+              type="button"
+              onClick={handleBowlRelease}
+              className="absolute bottom-4 right-4 z-20 flex flex-col items-center gap-1 rounded-2xl bg-slate-950/85 border border-sky-400/50 px-3 py-2 shadow-2xl cursor-pointer preserve-dark"
+            >
+              <span className="text-[10px] font-black uppercase tracking-wider text-sky-300">
+                Release Arc (Tap / Space)
+              </span>
+              <svg viewBox="0 0 120 46" className="w-32 h-11">
+                <path d="M 10 40 Q 60 2 110 40" fill="none" stroke="#334155" strokeWidth="8" strokeLinecap="round" />
+                <path d="M 44 17 Q 60 9 76 17" fill="none" stroke="#22c55e" strokeWidth="8" strokeLinecap="round" />
+                {(() => {
+                  const x = 10 + meterPos * 100;
+                  const y = 40 - Math.sin(meterPos * Math.PI) * 21;
+                  return <circle cx={x} cy={y} r="6.5" fill={inSweetSpot ? "#fde047" : "#ffffff"} stroke="#0f172a" strokeWidth="2" />;
+                })()}
+              </svg>
+            </button>
+          )}
+
+          {/* Floating Radial Timing Ring near Batsman (Tap anywhere on ring/canvas or press Space!) */}
+          {phaseGate === "BAT_TIMING" && (
+            <button
+              type="button"
+              onClick={handleBatHit}
+              className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 rounded-full bg-slate-950/85 border-2 border-amber-400/60 p-3 shadow-2xl cursor-pointer preserve-dark"
+            >
+              <svg viewBox="0 0 84 84" className="w-16 h-16">
+                <circle cx="42" cy="42" r="34" fill="none" stroke="#334155" strokeWidth="7" />
+                {/* Green Sweet Spot Arc */}
+                <circle
+                  cx="42"
+                  cy="42"
+                  r="34"
+                  fill="none"
+                  stroke="#22c55e"
+                  strokeWidth="7"
+                  strokeDasharray="48 166"
+                  strokeDashoffset="-82"
+                  strokeLinecap="round"
+                />
+                {/* Moving Timing Dot */}
+                {(() => {
+                  const ang = -Math.PI + meterPos * Math.PI * 2;
+                  const dx = 42 + Math.cos(ang) * 34;
+                  const dy = 42 + Math.sin(ang) * 34;
+                  return <circle cx={dx} cy={dy} r="6.5" fill={inSweetSpot ? "#fde047" : "#ffffff"} stroke="#0f172a" strokeWidth="2" />;
+                })()}
+                <text x="42" y="46" textAnchor="middle" fill="#fde047" fontSize="13" fontWeight="900">
+                  HIT!
+                </text>
+              </svg>
+            </button>
+          )}
 
           {/* Instant Timing Callout Badge */}
           {timingCallout && phaseGate === "ANIMATING" && (
