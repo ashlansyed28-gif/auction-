@@ -111,6 +111,7 @@ export function BroadcastMatchView({
   } | null>(null);
   const [timingCallout, setTimingCallout] = useState<TimingGrade | null>(null);
   const [stinger, setStinger] = useState<StingerBanner | null>(null);
+  const [isMuted, setIsMuted] = useState(soundEngine.isMuted());
   const [drawer, setDrawer] = useState<"NONE" | "SCORECARD" | "COMMENTARY" | "POINTS">("NONE");
   const [animation, setAnimation] = useState<DeliveryAnimationState>({
     key: 1,
@@ -122,11 +123,37 @@ export function BroadcastMatchView({
 
   const stingerSeq = useRef(1);
   const prevStrikerIdRef = useRef<number | null>(null);
+  const lastRemoteBallCountRef = useRef<number>(0);
 
-  // Sync external updates in Online Friend mode
+  // Sync external updates in Online Friend mode + play 3D ball animation & procedural Web Audio SFX
   useEffect(() => {
-    if (controlMode === "ONLINE_FRIEND") {
-      setMatch(initialMatch);
+    if (controlMode !== "ONLINE_FRIEND") return;
+    setMatch(initialMatch);
+    const totalBalls =
+      initialMatch.innings1.ballLog.length +
+      (initialMatch.innings2?.ballLog.length ?? 0) +
+      (initialMatch.superOver1?.ballLog.length ?? 0) +
+      (initialMatch.superOver2?.ballLog.length ?? 0);
+    if (totalBalls > lastRemoteBallCountRef.current) {
+      lastRemoteBallCountRef.current = totalBalls;
+      const curInn = getActiveInnings(initialMatch) || initialMatch.innings2 || initialMatch.innings1;
+      const latest = curInn.ballLog[curInn.ballLog.length - 1];
+      if (latest) {
+        soundEngine.playDeliveryAudio(latest);
+        setTimingCallout(latest.timingGrade);
+        setPhaseGate("ANIMATING");
+        setAnimation({
+          key: Date.now(),
+          outcome: latest,
+          phase: "RESOLVING",
+          activeLength: latest.length,
+          activeLine: latest.line,
+          speedPreviewKmh: latest.ballSpeedKmh,
+        });
+        setTimeout(() => {
+          setPhaseGate("READY");
+        }, 1050);
+      }
     }
   }, [controlMode, initialMatch]);
 
@@ -247,24 +274,24 @@ export function BroadcastMatchView({
         speedPreviewKmh: outcome.ballSpeedKmh,
       });
 
+      soundEngine.playDeliveryAudio(outcome);
+
       if (outcome.isWicket) {
-        soundEngine.playGavelSold();
         showStinger(
           "WICKET",
-          outcome.wicketKind === "BOWLED" ? "BOWLED HIM!" : "WICKET!",
+          outcome.wicketKind === "BOWLED"
+            ? "BOWLED HIM!"
+            : outcome.wicketKind === "RUN_OUT"
+            ? "RUN OUT!"
+            : "WICKET!",
           `${outcome.batterName} ${outcome.wicketKind} b ${outcome.bowlerName}`,
         );
       } else if (outcome.runs === 6) {
-        soundEngine.playFinalCall(1);
         showStinger("SIX", `MAXIMUM SIX • ${outcome.shotDistanceM ?? 88}m`, outcome.batterName);
       } else if (outcome.runs === 4) {
-        soundEngine.playBidClick(4);
         showStinger("FOUR", "CRACKING FOUR!", `${outcome.batterName} • ${outcome.shotType}`);
       } else if (outcome.isFreeHitNext) {
-        soundEngine.playFinalCall(2);
         showStinger("FREE_HIT", "NO BALL • FREE HIT!", "Next delivery is a Free Hit");
-      } else {
-        soundEngine.playBidClick(1);
       }
 
       setTimeout(() => {
@@ -580,6 +607,17 @@ export function BroadcastMatchView({
             </>
           )}
           <FullscreenLandscapeButton />
+          <button
+            type="button"
+            onClick={() => {
+              const next = !isMuted;
+              setIsMuted(next);
+              soundEngine.setMuted(next);
+            }}
+            className="px-2 py-1 rounded-lg bg-slate-900 border border-white/15 text-[11px] font-bold cursor-pointer"
+          >
+            {isMuted ? "🔇" : "🔊"}
+          </button>
           <button
             type="button"
             onClick={onToggleTheme}

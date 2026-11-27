@@ -767,9 +767,12 @@ export function StadiumCanvas({
             rippleMesh.material.opacity = 0.8 * (1 - p);
           }
         } else {
-          // Post-impact: either BOWLED/WICKET or Shot Trajectory to Outfield!
+          // Post-impact: either BOWLED/RUN OUT/WICKET or Shot Trajectory to Outfield!
           const u = (t - 0.36) / 0.64;
-          if (out.isWicket && (out.wicketKind === "BOWLED" || out.wicketKind === "LBW")) {
+          if (
+            out.isWicket &&
+            (out.wicketKind === "BOWLED" || out.wicketKind === "LBW" || out.wicketKind === "RUN_OUT")
+          ) {
             ballMesh.position.lerpVectors(batContactPos, new THREE.Vector3(0.05, 0.48, 10.6), Math.min(1, u * 2.2));
             // Uproot stumps & spin bails!
             const wt = Math.min(1, u * 1.8);
