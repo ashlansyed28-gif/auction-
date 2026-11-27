@@ -86,8 +86,14 @@ export function SetupLobby({
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                 <span className="text-xs font-black text-white">@{currentUser.username}</span>
                 <span className="text-[11px] text-slate-400">({currentUser.emailMasked})</span>
-                <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/35 text-[9px] font-black text-emerald-300 uppercase">
-                  Secure Email Login
+                <span
+                  className={`px-1.5 py-0.5 rounded border text-[9px] font-black uppercase ${
+                    currentUser.provider === "guest"
+                      ? "bg-amber-400/15 border-amber-400/35 text-amber-300"
+                      : "bg-emerald-500/15 border-emerald-400/35 text-emerald-300"
+                  }`}
+                >
+                  {currentUser.provider === "guest" ? "⚡ Guest Mode" : "🔒 Verified Email"}
                 </span>
               </div>
               <button
@@ -95,33 +101,33 @@ export function SetupLobby({
                 onClick={onSignOut}
                 className="px-3 py-1 rounded-lg bg-slate-800 border border-white/10 text-[11px] font-bold text-slate-300 hover:text-white cursor-pointer"
               >
-                Sign Out
+                {currentUser.provider === "guest" ? "Switch Player / Login" : "Sign Out"}
               </button>
             </>
           ) : (
             <>
               <span className="text-xs font-semibold text-slate-300">
-                Offline Pass &amp; Play Mode (Sign in with email for Multiplayer Rooms)
+                Offline Pass &amp; Play Mode (Enter as Guest or Email for Rooms)
               </span>
               <button
                 type="button"
                 onClick={onOpenAuth}
                 className="px-3 py-1.5 rounded-lg bg-amber-400 text-slate-950 text-xs font-black cursor-pointer"
               >
-                Email Sign In →
+                Guest / Login →
               </button>
             </>
           )}
         </div>
 
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/35 text-amber-300 text-xs font-extrabold tracking-widest uppercase mb-2.5">
-          T20 Friend Challenge • Custom Squad Room &amp; Pass-and-Play
+          🏏 Live T20 Squad Auction • Squad Vote &amp; Captain Lock
         </div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-          HAMMER TIME <span className="text-amber-400">T20 AUCTION</span>
+          CRICKET <span className="text-amber-400">BID WARS</span>
         </h1>
         <p className="text-slate-400 text-sm mt-1 max-w-2xl mx-auto">
-          Create a custom 2–4 member-per-team war room with squad voting &amp; single-captain agreement, or play locally.
+          Form 2–4 member squads, vote live on players, let your Captain seal the deal, and build the ultimate XI.
         </p>
 
         {/* Mode Switcher Tabs */}
@@ -178,11 +184,13 @@ export function SetupLobby({
               </div>
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Verified Player Username
+                  Player Username
                 </label>
                 <div className="w-full rounded-xl bg-slate-950/75 border border-emerald-400/35 px-3.5 py-2.5 text-sm font-black text-emerald-300 flex items-center justify-between">
                   <span>@{currentUser?.username || "Guest"}</span>
-                  <span className="text-[10px] text-slate-400">🔒 Verified</span>
+                  <span className="text-[10px] text-slate-400">
+                    {currentUser?.provider === "guest" ? "⚡ Guest" : "🔒 Verified"}
+                  </span>
                 </div>
               </div>
             </div>

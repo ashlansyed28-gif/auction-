@@ -635,7 +635,7 @@ export function AuctionStage({
           </button>
           <div>
             <div className="text-xs sm:text-sm font-black uppercase tracking-widest text-amber-400">
-              T20 Friend Challenge Broadcast
+              Cricket Bid Wars • Live Stage
             </div>
             <div className="text-[11px] text-slate-300 tnum">
               LOT #{effectiveLotIdx + 1} of {players.length} • {player ? `${player.category} • ${player.role}` : "COMPLETE"}

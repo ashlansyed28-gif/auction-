@@ -40,7 +40,7 @@ import {
 type AppScreen = "SETUP" | "STAGE" | "SCORECARD";
 
 const INITIAL_CONFIG: ChallengeConfig = {
-  roomTitle: "HAMMER TIME CUSTOM AUCTION",
+  roomTitle: "CRICKET BID WARS • T20 ARENA",
   teamCount: 10,
   membersPerTeam: 4,
   purseCr: 80,

@@ -20,7 +20,7 @@ export interface AuthenticatedUser {
   email: string;
   emailMasked: string;
   username: string;
-  provider: "supabase" | "local";
+  provider: "supabase" | "guest" | "local";
   verified: boolean;
 }
 

@@ -83,7 +83,7 @@ export function CustomRoomLobby({
   const handleCopyInvite = () => {
     const origin = typeof window !== "undefined" ? window.location.origin : "https://auction-liard-iota.vercel.app";
     const inviteUrl = `${origin}/?room=${roomCode}`;
-    const payload = `Join my Hammer Time T20 Cricket Auction Room!\nRoom Code: ${roomCode}\nLink: ${inviteUrl}`;
+    const payload = `Join my Cricket Bid Wars Auction Room!\nRoom Code: ${roomCode}\nLink: ${inviteUrl}`;
     copyText(payload, "INVITE");
   };
 
@@ -116,8 +116,14 @@ export function CustomRoomLobby({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-black text-white truncate">@{currentUser.username}</span>
-              <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/40 text-[9px] font-black text-emerald-300 uppercase">
-                Verified
+              <span
+                className={`px-1.5 py-0.5 rounded border text-[9px] font-black uppercase ${
+                  currentUser.provider === "guest"
+                    ? "bg-amber-400/20 border-amber-400/40 text-amber-300"
+                    : "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
+                }`}
+              >
+                {currentUser.provider === "guest" ? "⚡ Guest" : "Verified"}
               </span>
               {me?.teamRole === "CAPTAIN" && me.kitId && (
                 <span className="px-1.5 py-0.5 rounded bg-amber-400/20 border border-amber-400/50 text-[9px] font-black text-amber-300 uppercase">
@@ -298,7 +304,7 @@ export function CustomRoomLobby({
                 <input
                   type="text"
                   maxLength={32}
-                  value={config.roomTitle ?? "HAMMER TIME CUSTOM AUCTION"}
+                  value={config.roomTitle ?? "CRICKET BID WARS • T20 ARENA"}
                   onChange={(e) => onUpdateConfig({ ...config, roomTitle: e.target.value.toUpperCase() })}
                   className="w-full rounded-lg bg-slate-950 border border-white/15 px-2.5 py-1.5 text-xs font-black text-amber-300 focus:outline-none focus:border-amber-400"
                 />
@@ -489,7 +495,7 @@ export function CustomRoomLobby({
               <div className="flex items-center gap-2.5">
                 <span className="w-1.5 h-6 rounded-full bg-amber-400" />
                 <h2 className="text-base sm:text-lg font-black tracking-wide text-amber-300 uppercase">
-                  {config.roomTitle || "HAMMER TIME CUSTOM AUCTION"}
+                  {config.roomTitle || "CRICKET BID WARS • T20 ARENA"}
                 </h2>
               </div>
               <div className="text-xs font-bold text-slate-300 tnum">

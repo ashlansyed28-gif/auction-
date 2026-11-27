@@ -54,12 +54,58 @@ async function syncProfileBestEffort(client: SupabaseClient, user: User, usernam
   }
 }
 
+const GUEST_STORAGE_KEY = "cbw_guest_user";
+
+function normalizeAuthError(msg: string): string {
+  const lower = msg.toLowerCase();
+  if (lower.includes("rate limit") || lower.includes("over_email_send_rate_limit")) {
+    return "Email sending limit reached on Supabase free tier. Click 'Continue as Guest' to play immediately without email!";
+  }
+  return msg;
+}
+
+export function createGuestUser(usernameRaw?: string): { user?: AuthenticatedUser; error?: string } {
+  const raw = usernameRaw?.trim() || `Striker_${Math.floor(100 + Math.random() * 899)}`;
+  const check = validateSecureUsername(raw);
+  if (!check.ok) {
+    return { error: check.error };
+  }
+  const user: AuthenticatedUser = {
+    userId: `guest_${Math.random().toString(36).slice(2, 10)}`,
+    email: "",
+    emailMasked: "Guest Pass",
+    username: check.username,
+    provider: "guest",
+    verified: false,
+  };
+  if (typeof sessionStorage !== "undefined") {
+    try {
+      sessionStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(user));
+    } catch {}
+  }
+  return { user };
+}
+
+export function loadStoredGuestUser(): AuthenticatedUser | null {
+  if (typeof sessionStorage === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(GUEST_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AuthenticatedUser;
+    if (parsed && parsed.provider === "guest" && parsed.username) return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getCurrentAuthUser(): Promise<AuthenticatedUser | null> {
   const client = getSupabaseClient();
-  if (!client) return null;
-  const { data } = await client.auth.getSession();
-  if (!data.session?.user) return null;
-  return mapSupabaseUser(data.session.user);
+  if (client) {
+    const { data } = await client.auth.getSession();
+    if (data.session?.user) return mapSupabaseUser(data.session.user);
+  }
+  return loadStoredGuestUser();
 }
 
 export function onAuthStateChanged(callback: (user: AuthenticatedUser | null) => void): () => void {
@@ -106,7 +152,7 @@ export async function signUpWithEmailPassword(
     },
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: normalizeAuthError(error.message) };
   if (data.user && data.session) {
     await syncProfileBestEffort(client, data.user, unameCheck.username);
     return { user: mapSupabaseUser(data.user) };
@@ -130,7 +176,7 @@ export async function signInWithEmailPassword(
     return { error: "Enter your password." };
   }
   const { data, error } = await client.auth.signInWithPassword({ email, password });
-  if (error) return { error: error.message };
+  if (error) return { error: normalizeAuthError(error.message) };
   if (!data.user) return { error: "Authentication failed." };
   return { user: mapSupabaseUser(data.user) };
 }
@@ -160,7 +206,7 @@ export async function sendEmailOtpCode(
       data: cleanUsername ? { username: cleanUsername } : undefined,
     },
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: normalizeAuthError(error.message) };
   return { ok: true };
 }
 
@@ -182,7 +228,7 @@ export async function verifyEmailOtpCode(
     token,
     type: "email",
   });
-  if (error) return { error: error.message };
+  if (error) return { error: normalizeAuthError(error.message) };
   if (!data.user) return { error: "Verification failed." };
 
   let currentUser = data.user;
@@ -208,13 +254,18 @@ export async function updateSecureUsername(
   const { data, error } = await client.auth.updateUser({
     data: { username: check.username },
   });
-  if (error) return { error: error.message };
+  if (error) return { error: normalizeAuthError(error.message) };
   if (!data.user) return { error: "Could not update username." };
   await syncProfileBestEffort(client, data.user, check.username);
   return { user: mapSupabaseUser(data.user) };
 }
 
 export async function signOutAuth(): Promise<void> {
+  if (typeof sessionStorage !== "undefined") {
+    try {
+      sessionStorage.removeItem(GUEST_STORAGE_KEY);
+    } catch {}
+  }
   const client = getSupabaseClient();
   if (client) {
     await client.auth.signOut();

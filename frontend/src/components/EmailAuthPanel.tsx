@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { AuthenticatedUser } from "../types/auction";
 import {
+  createGuestUser,
   sendEmailOtpCode,
   signInWithEmailPassword,
   signUpWithEmailPassword,
@@ -8,7 +9,7 @@ import {
 } from "../utils/authService";
 import { sanitizeUsername } from "../utils/teamRoomHelpers";
 
-type AuthMode = "SIGN_IN" | "SIGN_UP" | "OTP";
+type AuthMode = "GUEST" | "SIGN_IN" | "SIGN_UP" | "OTP";
 
 interface EmailAuthPanelProps {
   supabaseConfigured: boolean;
@@ -21,7 +22,8 @@ export function EmailAuthPanel({
   onAuthenticated,
   onPlayOfflinePassAndPlay,
 }: EmailAuthPanelProps) {
-  const [mode, setMode] = useState<AuthMode>("SIGN_IN");
+  const [mode, setMode] = useState<AuthMode>("GUEST");
+  const [guestName, setGuestName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -30,6 +32,18 @@ export function EmailAuthPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  const handleGuestEnter = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setError(null);
+    const chosen = guestName.trim() || username.trim();
+    const res = createGuestUser(chosen);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    if (res.user) onAuthenticated(res.user);
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,67 +114,105 @@ export function EmailAuthPanel({
     <div className="min-h-[100dvh] flex items-center justify-center px-4 py-4 sm:py-8">
       <div className="w-full max-w-md sm:max-w-lg max-h-[95dvh] overflow-y-auto rounded-2xl bg-slate-950/90 border border-amber-400/35 shadow-2xl p-4 sm:p-6 space-y-4 backdrop-blur-xl">
         <div className="text-center space-y-1.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/35 text-emerald-300 text-[11px] font-extrabold uppercase tracking-widest">
-            🔒 Verified Player Access
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 text-[11px] font-extrabold uppercase tracking-widest">
+            🏏 Live T20 Squad Auction
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-            HAMMER TIME <span className="text-amber-400">CUSTOM ROOM</span>
+            CRICKET <span className="text-amber-400">BID WARS</span>
           </h1>
           <p className="text-xs text-slate-400">
-            Sign in with your email to claim a secure <strong className="text-slate-200">@username</strong> before
-            creating or joining a squad room.
+            Jump right in as a <strong className="text-slate-200">Guest</strong> (no login needed) or sign in with your
+            email for a verified <strong className="text-slate-200">@username</strong>.
           </p>
         </div>
 
-        {!supabaseConfigured ? (
+        <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-slate-900 border border-white/10">
+          {(
+            [
+              ["GUEST", "⚡ Guest"],
+              ["SIGN_IN", "Sign In"],
+              ["SIGN_UP", "Sign Up"],
+              ["OTP", "Email OTP"],
+            ] as const
+          ).map(([tabKey, label]) => (
+            <button
+              key={tabKey}
+              type="button"
+              onClick={() => {
+                setMode(tabKey);
+                setError(null);
+                setInfo(null);
+                setAwaitingOtp(false);
+              }}
+              className={`py-2 rounded-lg text-[11px] sm:text-xs font-extrabold transition cursor-pointer ${
+                mode === tabKey ? "bg-amber-400 text-slate-950 shadow" : "text-slate-300 hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {error && (
+          <div className="rounded-xl bg-rose-500/15 border border-rose-400/40 px-3.5 py-2.5 text-xs font-semibold text-rose-200 space-y-2">
+            <div>{error}</div>
+            {mode !== "GUEST" && (
+              <button
+                type="button"
+                onClick={handleGuestEnter}
+                className="w-full py-2 rounded-lg bg-amber-400 text-slate-950 font-black text-[11px] uppercase tracking-wider cursor-pointer"
+              >
+                ⚡ Continue as Guest Instead (No Email Needed) →
+              </button>
+            )}
+          </div>
+        )}
+
+        {info && (
+          <div className="rounded-xl bg-sky-500/15 border border-sky-400/40 px-3.5 py-2.5 text-xs font-semibold text-sky-200">
+            {info}
+          </div>
+        )}
+
+        {mode === "GUEST" ? (
+          <form onSubmit={handleGuestEnter} className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                Pick Your Player Name (Optional — 3-16 chars, A-Z / 0-9 / _)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-2.5 text-amber-300 font-black text-sm">@</span>
+                <input
+                  type="text"
+                  maxLength={16}
+                  value={guestName}
+                  onChange={(e) => setGuestName(sanitizeUsername(e.target.value))}
+                  placeholder="Leave blank for random e.g. Striker_45"
+                  className="w-full rounded-xl bg-slate-900 border border-white/15 pl-8 pr-3.5 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider cursor-pointer shadow-lg shadow-amber-400/20"
+            >
+              ⚡ Play Now as Guest (Create or Join Room) →
+            </button>
+            <div className="text-[11px] text-center text-slate-400">
+              Full multiplayer rooms, squad voting &amp; live chat work right away in Guest mode.
+            </div>
+          </form>
+        ) : !supabaseConfigured ? (
           <div className="rounded-xl bg-amber-500/15 border border-amber-400/40 p-4 text-xs text-amber-200 space-y-2">
             <div className="font-black uppercase tracking-wider">Supabase Env Not Configured</div>
             <p>
-              Add <code className="text-white">VITE_SUPABASE_URL</code> and{" "}
-              <code className="text-white">VITE_SUPABASE_ANON_KEY</code> to enable secure email login and live room
-              sync.
+              Use <strong>⚡ Guest Mode</strong> above to play, or configure{" "}
+              <code className="text-white">VITE_SUPABASE_URL</code> and{" "}
+              <code className="text-white">VITE_SUPABASE_ANON_KEY</code>.
             </p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-900 border border-white/10">
-              {(
-                [
-                  ["SIGN_IN", "Sign In"],
-                  ["SIGN_UP", "Create Account"],
-                  ["OTP", "Email OTP"],
-                ] as const
-              ).map(([tabKey, label]) => (
-                <button
-                  key={tabKey}
-                  type="button"
-                  onClick={() => {
-                    setMode(tabKey);
-                    setError(null);
-                    setInfo(null);
-                    setAwaitingOtp(false);
-                  }}
-                  className={`py-2 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                    mode === tabKey ? "bg-amber-400 text-slate-950 shadow" : "text-slate-300 hover:text-white"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {error && (
-              <div className="rounded-xl bg-rose-500/15 border border-rose-400/40 px-3.5 py-2.5 text-xs font-semibold text-rose-200">
-                {error}
-              </div>
-            )}
-
-            {info && (
-              <div className="rounded-xl bg-sky-500/15 border border-sky-400/40 px-3.5 py-2.5 text-xs font-semibold text-sky-200">
-                {info}
-              </div>
-            )}
-
             {mode === "SIGN_IN" && (
               <form onSubmit={handleSignIn} className="space-y-3">
                 <div>
@@ -203,7 +255,7 @@ export function EmailAuthPanel({
               <form onSubmit={handleSignUp} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                    Secure Player Username (3-16 chars, A-Z / 0-9 / _)
+                    Player Username (3-16 chars, A-Z / 0-9 / _)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-2.5 text-amber-300 font-black text-sm">@</span>
@@ -250,7 +302,7 @@ export function EmailAuthPanel({
                   disabled={busy}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider disabled:opacity-50 cursor-pointer"
                 >
-                  {busy ? "Creating Account..." : "Create Verified Account →"}
+                  {busy ? "Creating Account..." : "Create Account →"}
                 </button>
               </form>
             )}
@@ -345,7 +397,7 @@ export function EmailAuthPanel({
               onClick={onPlayOfflinePassAndPlay}
               className="text-xs font-bold text-slate-400 hover:text-amber-300 underline underline-offset-4 cursor-pointer"
             >
-              Or practice offline in Pass &amp; Play mode →
+              Or play offline Pass &amp; Play on one screen →
             </button>
           </div>
         )}
