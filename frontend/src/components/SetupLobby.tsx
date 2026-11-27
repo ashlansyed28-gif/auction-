@@ -131,11 +131,11 @@ export function SetupLobby({
         </p>
 
         {/* Mode Switcher Tabs */}
-        <div className="mt-4 inline-grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-900/90 border border-white/10">
+        <div className="mt-3 sm:mt-4 inline-grid grid-cols-3 gap-1 sm:gap-1.5 p-1 rounded-2xl bg-slate-900/90 border border-white/10 w-full max-w-md sm:w-auto">
           {(
             [
-              ["CREATE", "Create Custom Room"],
-              ["JOIN", "Join Room Code"],
+              ["CREATE", "Create Room"],
+              ["JOIN", "Join Room"],
               ["LOCAL", "Pass & Play"],
             ] as const
           ).map(([tabKey, label]) => (
@@ -143,7 +143,7 @@ export function SetupLobby({
               key={tabKey}
               type="button"
               onClick={() => onChangeTab(tabKey)}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+              className={`px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-extrabold transition cursor-pointer whitespace-nowrap ${
                 activeTab === tabKey
                   ? "bg-amber-400 text-slate-950 shadow-md"
                   : "text-slate-300 hover:text-white"

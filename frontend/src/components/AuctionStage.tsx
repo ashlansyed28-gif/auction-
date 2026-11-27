@@ -622,9 +622,9 @@ export function AuctionStage({
       : `Opening Base Price: ${formatLakhsCrores(player?.basePriceCr ?? 0)}`;
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#070B16] text-white">
+    <div className="min-h-[100dvh] flex flex-col justify-between bg-[#070B16] text-white">
       {/* Top Broadcast Header with Room Code & Connected Teams */}
-      <header className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-slate-950/95 via-rose-950/80 to-slate-950/95 border-b border-amber-400/25 shadow-lg">
+      <header className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 px-2.5 sm:px-6 py-1.5 sm:py-2.5 bg-gradient-to-r from-slate-950/95 via-rose-950/80 to-slate-950/95 border-b border-amber-400/25 shadow-lg">
         <div className="flex items-center gap-3">
           <button
             type="button"

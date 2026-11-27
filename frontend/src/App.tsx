@@ -425,7 +425,7 @@ export function App() {
     }
   }, [currentUser, screen, lobbyTab, inCustomRoom, roomCode, config, selectedKitId, connectAsHost]);
 
-  // Periodic heartbeat ping for connected peers
+  // Periodic heartbeat ping + Guest initial sync retry until first STATE_SYNC arrives
   useEffect(() => {
     if (!inCustomRoom && screen === "SETUP") return;
     if (roomMode === "LOCAL") return;
@@ -436,9 +436,20 @@ export function App() {
         kitId: selectedKitId,
         ts: Date.now(),
       });
-    }, 3500);
+      if (roomMode === "GUEST" && joinStatus && currentUser) {
+        transportRef.current?.send({
+          type: "JOIN_REQUEST",
+          clientId,
+          userId: currentUser.userId,
+          friendName: currentUser.username,
+          emailMasked: currentUser.emailMasked,
+          kitId: selectedKitId,
+        });
+        transportRef.current?.send({ type: "REQUEST_SYNC", clientId });
+      }
+    }, 2500);
     return () => clearInterval(timer);
-  }, [inCustomRoom, screen, roomMode, clientId, selectedKitId]);
+  }, [inCustomRoom, screen, roomMode, joinStatus, currentUser, clientId, selectedKitId]);
 
   useEffect(() => () => teardownTransport(), [teardownTransport]);
 

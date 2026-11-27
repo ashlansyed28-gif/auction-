@@ -46,20 +46,30 @@
 }
 
 /* Compact spacing for phones & small tablets in Landscape orientation */
-@media (orientation: landscape) and (max-height: 540px) {
+@media (orientation: landscape) and (max-height: 560px) {
+  .landscape-lock-vh {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
   .landscape-compact-stage {
-    padding-top: 0.45rem;
-    padding-bottom: 0.45rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
   }
   .landscape-compact-podium {
-    transform: scale(0.82);
+    transform: scale(0.76);
     transform-origin: center bottom;
+    margin-top: -12px;
+    margin-bottom: -10px;
   }
   .landscape-compact-hud {
-    padding: 0.55rem 0.75rem;
+    padding: 0.45rem 0.65rem;
   }
   .landscape-compact-arena-banner {
-    height: 4.5rem;
+    height: 2.75rem;
+  }
+  .hide-short-landscape {
+    display: none !important;
   }
 }
 
