@@ -1,0 +1,722 @@
+[
+  {
+    "id": "HT-S1-001",
+    "name": "Viraat Kholi",
+    "country": "IND",
+    "age": 36,
+    "overseas": false,
+    "role": "BAT",
+    "subRole": "ANCHOR",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm medium",
+    "styleTag": "Chase Master & Cover-Drive Icon",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 97,
+    "stats": {
+      "batting": {
+        "matches": 252,
+        "runs": 8004,
+        "avg": 38.7,
+        "strikeRate": 132.0
+      },
+      "bowling": {
+        "wickets": 4,
+        "economy": 8.05,
+        "best": "1/13"
+      },
+      "keepers": {
+        "catches": 114,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "RCB",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 4,
+      "hairColor": "#181615",
+      "beard": 1
+    }
+  },
+  {
+    "id": "HT-S1-002",
+    "name": "Rohith Sharmma",
+    "country": "IND",
+    "age": 37,
+    "overseas": false,
+    "role": "BAT",
+    "subRole": "OPENER",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm offbreak",
+    "styleTag": "Pull-Shot Powerplay Captain",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 95,
+    "stats": {
+      "batting": {
+        "matches": 257,
+        "runs": 6628,
+        "avg": 29.7,
+        "strikeRate": 131.1
+      },
+      "bowling": {
+        "wickets": 15,
+        "economy": 8.02,
+        "best": "4/6"
+      },
+      "keepers": {
+        "catches": 101,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "MBI",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 4,
+      "hairStyle": 5,
+      "hairColor": "#181615",
+      "beard": 0
+    }
+  },
+  {
+    "id": "HT-S1-003",
+    "name": "Jaspreeth Bhumra",
+    "country": "IND",
+    "age": 31,
+    "overseas": false,
+    "role": "BOWL",
+    "subRole": "DEATH_SPECIALIST",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm fast",
+    "styleTag": "Unplayable Yorker Architect",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 98,
+    "stats": {
+      "batting": {
+        "matches": 133,
+        "runs": 69,
+        "avg": 9.8,
+        "strikeRate": 72.6
+      },
+      "bowling": {
+        "wickets": 165,
+        "economy": 7.3,
+        "best": "5/10"
+      },
+      "keepers": {
+        "catches": 24,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "MBI",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 2,
+      "hairStyle": 6,
+      "hairColor": "#181615",
+      "beard": 3
+    }
+  },
+  {
+    "id": "HT-S1-004",
+    "name": "Haardik Pandiya",
+    "country": "IND",
+    "age": 31,
+    "overseas": false,
+    "role": "AR",
+    "subRole": "PACE_AR",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm fast-medium",
+    "styleTag": "Clutch Finisher & Heavy-Ball Pace",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 94,
+    "stats": {
+      "batting": {
+        "matches": 137,
+        "runs": 2525,
+        "avg": 28.7,
+        "strikeRate": 145.6
+      },
+      "bowling": {
+        "wickets": 64,
+        "economy": 9.05,
+        "best": "3/17"
+      },
+      "keepers": {
+        "catches": 63,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "MBI",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 7,
+      "hairColor": "#181615",
+      "beard": 2
+    }
+  },
+  {
+    "id": "HT-S1-005",
+    "name": "Suryakumaar Yadhav",
+    "country": "IND",
+    "age": 34,
+    "overseas": false,
+    "role": "BAT",
+    "subRole": "FINISHER",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm medium",
+    "styleTag": "360-Degree Scoop Virtuoso",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 96,
+    "stats": {
+      "batting": {
+        "matches": 150,
+        "runs": 3594,
+        "avg": 32.4,
+        "strikeRate": 145.3
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 77,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "MBI",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 4,
+      "hairStyle": 0,
+      "hairColor": "#181615",
+      "beard": 1
+    }
+  },
+  {
+    "id": "HT-S1-006",
+    "name": "Rishab Panth",
+    "country": "IND",
+    "age": 27,
+    "overseas": false,
+    "role": "WK",
+    "subRole": "KEEPER_BAT",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "One-Handed Sixes & Fearless Keeper",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 94,
+    "stats": {
+      "batting": {
+        "matches": 111,
+        "runs": 3284,
+        "avg": 35.3,
+        "strikeRate": 148.9
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 75,
+        "stumpings": 23
+      }
+    },
+    "formerTeam": "DDC",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 2,
+      "hairStyle": 1,
+      "hairColor": "#181615",
+      "beard": 0
+    }
+  },
+  {
+    "id": "HT-S1-007",
+    "name": "Shubmann Gil",
+    "country": "IND",
+    "age": 25,
+    "overseas": false,
+    "role": "BAT",
+    "subRole": "OPENER",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm offbreak",
+    "styleTag": "Silky Timing & Classical Opener",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 93,
+    "stats": {
+      "batting": {
+        "matches": 103,
+        "runs": 3216,
+        "avg": 37.8,
+        "strikeRate": 135.7
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 41,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "GPT",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 2,
+      "hairColor": "#181615",
+      "beard": 3
+    }
+  },
+  {
+    "id": "HT-S1-008",
+    "name": "Rasheed Khaan",
+    "country": "AFG",
+    "age": 26,
+    "overseas": true,
+    "role": "BOWL",
+    "subRole": "SPIN",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Legbreak googly",
+    "styleTag": "Rapid-Arm Mystery Googly",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 95,
+    "stats": {
+      "batting": {
+        "matches": 121,
+        "runs": 545,
+        "avg": 14.7,
+        "strikeRate": 162.7
+      },
+      "bowling": {
+        "wickets": 149,
+        "economy": 6.82,
+        "best": "4/24"
+      },
+      "keepers": {
+        "catches": 44,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "GPT",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 4,
+      "hairStyle": 3,
+      "hairColor": "#181615",
+      "beard": 2
+    }
+  },
+  {
+    "id": "HT-S1-009",
+    "name": "Heinrik Klasen",
+    "country": "RSA",
+    "age": 33,
+    "overseas": true,
+    "role": "WK",
+    "subRole": "FINISHER",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "Spin-Destroying Middle-Order Blitz",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 94,
+    "stats": {
+      "batting": {
+        "matches": 35,
+        "runs": 993,
+        "avg": 38.2,
+        "strikeRate": 168.3
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 19,
+        "stumpings": 4
+      }
+    },
+    "formerTeam": "SRH",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 4,
+      "hairStyle": 4,
+      "hairColor": "#141414",
+      "beard": 1
+    }
+  },
+  {
+    "id": "HT-S1-010",
+    "name": "Shreyash Aiyer",
+    "country": "IND",
+    "age": 30,
+    "overseas": false,
+    "role": "BAT",
+    "subRole": "ANCHOR",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm legbreak",
+    "styleTag": "Spin-Crushing Title Skipper",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 92,
+    "stats": {
+      "batting": {
+        "matches": 115,
+        "runs": 3127,
+        "avg": 32.2,
+        "strikeRate": 127.5
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 51,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "KRC",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 5,
+      "hairColor": "#181615",
+      "beard": 0
+    }
+  },
+  {
+    "id": "HT-S1-011",
+    "name": "Yashaswi Jaiswaal",
+    "country": "IND",
+    "age": 23,
+    "overseas": false,
+    "role": "BAT",
+    "subRole": "OPENER",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "Right-arm legbreak",
+    "styleTag": "Fearless Left-Hand Powerplay Assault",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 92,
+    "stats": {
+      "batting": {
+        "matches": 52,
+        "runs": 1607,
+        "avg": 32.1,
+        "strikeRate": 150.6
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 21,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "RRG",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 4,
+      "hairStyle": 6,
+      "hairColor": "#181615",
+      "beard": 3
+    }
+  },
+  {
+    "id": "HT-S1-012",
+    "name": "Sanjoo Samsun",
+    "country": "IND",
+    "age": 30,
+    "overseas": false,
+    "role": "WK",
+    "subRole": "KEEPER_BAT",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "Effortless Lofted Drive Maestro",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 91,
+    "stats": {
+      "batting": {
+        "matches": 168,
+        "runs": 4419,
+        "avg": 30.7,
+        "strikeRate": 138.9
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 83,
+        "stumpings": 16
+      }
+    },
+    "formerTeam": "RRG",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 2,
+      "hairStyle": 7,
+      "hairColor": "#181615",
+      "beard": 2
+    }
+  },
+  {
+    "id": "HT-S1-013",
+    "name": "Ravindhra Jadeya",
+    "country": "IND",
+    "age": 36,
+    "overseas": false,
+    "role": "AR",
+    "subRole": "SPIN_AR",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "Slow left-arm orthodox",
+    "styleTag": "Bullet-Arm All-Rounder & Finisher",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 93,
+    "stats": {
+      "batting": {
+        "matches": 240,
+        "runs": 2959,
+        "avg": 27.4,
+        "strikeRate": 129.7
+      },
+      "bowling": {
+        "wickets": 160,
+        "economy": 7.62,
+        "best": "5/16"
+      },
+      "keepers": {
+        "catches": 103,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "CSK",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 0,
+      "hairColor": "#181615",
+      "beard": 1
+    }
+  },
+  {
+    "id": "HT-S1-014",
+    "name": "Patt Cumminz",
+    "country": "AUS",
+    "age": 31,
+    "overseas": true,
+    "role": "BOWL",
+    "subRole": "PACE",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm fast",
+    "styleTag": "Ice-Cool Tactician & Hard-Length Pace",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 93,
+    "stats": {
+      "batting": {
+        "matches": 58,
+        "runs": 515,
+        "avg": 18.4,
+        "strikeRate": 149.3
+      },
+      "bowling": {
+        "wickets": 63,
+        "economy": 8.75,
+        "best": "4/34"
+      },
+      "keepers": {
+        "catches": 21,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "SRH",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 1,
+      "hairStyle": 1,
+      "hairColor": "#7A542E",
+      "beard": 0
+    }
+  },
+  {
+    "id": "HT-S1-015",
+    "name": "Mitchel Stark",
+    "country": "AUS",
+    "age": 34,
+    "overseas": true,
+    "role": "BOWL",
+    "subRole": "DEATH_SPECIALIST",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "Left-arm fast",
+    "styleTag": "150 kph Swinging Yorker Spearhead",
+    "set": 1,
+    "basePriceCr": 2.0,
+    "rating": 92,
+    "stats": {
+      "batting": {
+        "matches": 41,
+        "runs": 105,
+        "avg": 11.7,
+        "strikeRate": 104.0
+      },
+      "bowling": {
+        "wickets": 51,
+        "economy": 8.21,
+        "best": "4/15"
+      },
+      "keepers": {
+        "catches": 13,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "KRC",
+    "vintage": {
+      "isVintage": false,
+      "era": null,
+      "legendTier": null
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 0,
+      "hairStyle": 2,
+      "hairColor": "#3D2B1F",
+      "beard": 3
+    }
+  }
+]

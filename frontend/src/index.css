@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 50% 10%, rgba(29, 78, 216, 0.25) 0%, transparent 52%),
+      radial-gradient(circle at 15% 88%, rgba(225, 29, 72, 0.14) 0%, transparent 45%),
+      radial-gradient(circle at 85% 88%, rgba(16, 185, 129, 0.14) 0%, transparent 45%),
+      #070b16;
+    color: #f8fafc;
+    overflow-x: hidden;
+  }
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.arena-perspective {
+  perspective: 1200px;
+}
+
+.camera-rig-3d {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@keyframes liveBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+}
+
+.live-dot {
+  animation: liveBlink 1.2s ease-in-out infinite;
+}
+
+@keyframes flagWave {
+  0%, 100% {
+    transform: skewY(0deg) scaleX(1);
+  }
+  50% {
+    transform: skewY(-4deg) scaleX(0.95);
+  }
+}
+
+.flag-wave {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: flagWave 1.8s ease-in-out infinite;
+}

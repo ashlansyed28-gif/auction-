@@ -1,0 +1,20 @@
+# Dependencies & build outputs
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Local secrets & environment files
+.env
+.env.local
+.env.*.local
+
+# Android local SDK & Gradle caches
+local.properties
+.gradle/
+build/
+app/build/
+
+# Working local duplicates excluded in favor of filtered frontend/ & backend/
+friend-challenge/
+web/

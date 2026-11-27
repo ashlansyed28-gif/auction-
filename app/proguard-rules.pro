@@ -1,0 +1,3 @@
+-keepattributes *Annotation*
+-keepclassmembers class com.hammertime.auction.model.** { *; }
+-dontwarn kotlinx.serialization.**

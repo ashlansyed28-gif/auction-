@@ -1,0 +1,1202 @@
+[
+  {
+    "id": "HT-S7-001",
+    "name": "M.S. Dhony",
+    "country": "IND",
+    "age": 43,
+    "overseas": false,
+    "role": "WK",
+    "subRole": "FINISHER",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm medium",
+    "styleTag": "Captain Cool & Helicopter Architect",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 99,
+    "stats": {
+      "batting": {
+        "matches": 264,
+        "runs": 5243,
+        "avg": 39.1,
+        "strikeRate": 137.5
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 152,
+        "stumpings": 42
+      }
+    },
+    "formerTeam": "CSK",
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2024",
+      "legendTier": "IMMORTAL"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 6,
+      "hairColor": "#2C2A29",
+      "beard": 3
+    }
+  },
+  {
+    "id": "HT-S7-002",
+    "name": "A.B. De Vilierz",
+    "country": "RSA",
+    "age": 40,
+    "overseas": true,
+    "role": "WK",
+    "subRole": "FINISHER",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "Mr. 360 Horizon Breaker",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 98,
+    "stats": {
+      "batting": {
+        "matches": 184,
+        "runs": 5162,
+        "avg": 39.7,
+        "strikeRate": 151.7
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 118,
+        "stumpings": 8
+      }
+    },
+    "formerTeam": "RCB",
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2021",
+      "legendTier": "IMMORTAL"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 1,
+      "hairStyle": 7,
+      "hairColor": "#4B3621",
+      "beard": 2
+    }
+  },
+  {
+    "id": "HT-S7-003",
+    "name": "Kriss Gayl",
+    "country": "WIN",
+    "age": 45,
+    "overseas": true,
+    "role": "BAT",
+    "subRole": "OPENER",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "Right-arm offbreak",
+    "styleTag": "The 175* Universe Boss",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 98,
+    "stats": {
+      "batting": {
+        "matches": 142,
+        "runs": 4965,
+        "avg": 39.7,
+        "strikeRate": 149.0
+      },
+      "bowling": {
+        "wickets": 18,
+        "economy": 7.89,
+        "best": "2/14"
+      },
+      "keepers": {
+        "catches": 32,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "RCB",
+    "vintage": {
+      "isVintage": true,
+      "era": "2009–2021",
+      "legendTier": "IMMORTAL"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 4,
+      "hairStyle": 0,
+      "hairColor": "#141414",
+      "beard": 1
+    }
+  },
+  {
+    "id": "HT-S7-004",
+    "name": "Lasit Malingaa",
+    "country": "SRL",
+    "age": 41,
+    "overseas": true,
+    "role": "BOWL",
+    "subRole": "DEATH_SPECIALIST",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm fast",
+    "styleTag": "Toe-Crushing Slinga Yorker GOAT",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 97,
+    "stats": {
+      "batting": {
+        "matches": 122,
+        "runs": 88,
+        "avg": 5.5,
+        "strikeRate": 88.9
+      },
+      "bowling": {
+        "wickets": 170,
+        "economy": 7.14,
+        "best": "5/13"
+      },
+      "keepers": {
+        "catches": 20,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "MBI",
+    "vintage": {
+      "isVintage": true,
+      "era": "2009–2019",
+      "legendTier": "IMMORTAL"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 1,
+      "hairColor": "#181615",
+      "beard": 0
+    }
+  },
+  {
+    "id": "HT-S7-005",
+    "name": "Sureshh Rayna",
+    "country": "IND",
+    "age": 38,
+    "overseas": false,
+    "role": "BAT",
+    "subRole": "ANCHOR",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "Right-arm offbreak",
+    "styleTag": "Mr. T20 Playoff Clutch Maestro",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 95,
+    "stats": {
+      "batting": {
+        "matches": 205,
+        "runs": 5528,
+        "avg": 32.5,
+        "strikeRate": 136.8
+      },
+      "bowling": {
+        "wickets": 25,
+        "economy": 7.39,
+        "best": "2/0"
+      },
+      "keepers": {
+        "catches": 109,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "CSK",
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2021",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 4,
+      "hairStyle": 2,
+      "hairColor": "#2C2A29",
+      "beard": 3
+    }
+  },
+  {
+    "id": "HT-S7-006",
+    "name": "Gautham Gambeer",
+    "country": "IND",
+    "age": 43,
+    "overseas": false,
+    "role": "BAT",
+    "subRole": "OPENER",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "Two-Time Title-Winning Opener",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 94,
+    "stats": {
+      "batting": {
+        "matches": 154,
+        "runs": 4217,
+        "avg": 31.0,
+        "strikeRate": 123.9
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 35,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2018",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 2,
+      "hairStyle": 3,
+      "hairColor": "#181615",
+      "beard": 2
+    }
+  },
+  {
+    "id": "HT-S7-007",
+    "name": "Shayne Wattson",
+    "country": "AUS",
+    "age": 43,
+    "overseas": true,
+    "role": "AR",
+    "subRole": "PACE_AR",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm fast-medium",
+    "styleTag": "Final-Century & Two-Time MVP Legend",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 95,
+    "stats": {
+      "batting": {
+        "matches": 145,
+        "runs": 3874,
+        "avg": 31.0,
+        "strikeRate": 138.0
+      },
+      "bowling": {
+        "wickets": 92,
+        "economy": 7.93,
+        "best": "4/29"
+      },
+      "keepers": {
+        "catches": 40,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2020",
+      "legendTier": "IMMORTAL"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 0,
+      "hairStyle": 4,
+      "hairColor": "#5E432C",
+      "beard": 1
+    }
+  },
+  {
+    "id": "HT-S7-008",
+    "name": "Dwaynne Braavo",
+    "country": "WIN",
+    "age": 41,
+    "overseas": true,
+    "role": "AR",
+    "subRole": "DEATH_SPECIALIST",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm medium-fast",
+    "styleTag": "Dipping Slower-Ball Champion",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 95,
+    "stats": {
+      "batting": {
+        "matches": 161,
+        "runs": 1560,
+        "avg": 22.6,
+        "strikeRate": 129.6
+      },
+      "bowling": {
+        "wickets": 183,
+        "economy": 8.38,
+        "best": "4/22"
+      },
+      "keepers": {
+        "catches": 80,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "CSK",
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2022",
+      "legendTier": "IMMORTAL"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 5,
+      "hairStyle": 5,
+      "hairColor": "#141414",
+      "beard": 0
+    }
+  },
+  {
+    "id": "HT-S7-009",
+    "name": "Keiron Pollurd",
+    "country": "WIN",
+    "age": 37,
+    "overseas": true,
+    "role": "AR",
+    "subRole": "FINISHER",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm medium",
+    "styleTag": "Big-Final Clutch Muscle Legend",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 95,
+    "stats": {
+      "batting": {
+        "matches": 189,
+        "runs": 3412,
+        "avg": 28.7,
+        "strikeRate": 147.3
+      },
+      "bowling": {
+        "wickets": 69,
+        "economy": 8.79,
+        "best": "4/44"
+      },
+      "keepers": {
+        "catches": 103,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": "MBI",
+    "vintage": {
+      "isVintage": true,
+      "era": "2010–2022",
+      "legendTier": "IMMORTAL"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 4,
+      "hairStyle": 6,
+      "hairColor": "#141414",
+      "beard": 3
+    }
+  },
+  {
+    "id": "HT-S7-010",
+    "name": "Brendan McCullam",
+    "country": "NZL",
+    "age": 43,
+    "overseas": true,
+    "role": "WK",
+    "subRole": "OPENER",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "158* Opening-Night Trailblazer",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 93,
+    "stats": {
+      "batting": {
+        "matches": 109,
+        "runs": 2880,
+        "avg": 27.7,
+        "strikeRate": 131.7
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 43,
+        "stumpings": 6
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2018",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 1,
+      "hairStyle": 7,
+      "hairColor": "#9E7B4F",
+      "beard": 2
+    }
+  },
+  {
+    "id": "HT-S7-011",
+    "name": "Daveed Warnar",
+    "country": "AUS",
+    "age": 38,
+    "overseas": true,
+    "role": "BAT",
+    "subRole": "OPENER",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "Three-Time Orange-Cap Titan",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 96,
+    "stats": {
+      "batting": {
+        "matches": 184,
+        "runs": 6565,
+        "avg": 40.5,
+        "strikeRate": 139.8
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 86,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2009–2024",
+      "legendTier": "IMMORTAL"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 0,
+      "hairStyle": 0,
+      "hairColor": "#5E432C",
+      "beard": 1
+    }
+  },
+  {
+    "id": "HT-S7-012",
+    "name": "Shikaar Dhawaan",
+    "country": "IND",
+    "age": 39,
+    "overseas": false,
+    "role": "BAT",
+    "subRole": "OPENER",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "Gabbar Powerplay Cover-Drive Icon",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 94,
+    "stats": {
+      "batting": {
+        "matches": 222,
+        "runs": 6769,
+        "avg": 35.3,
+        "strikeRate": 127.1
+      },
+      "bowling": {
+        "wickets": 4,
+        "economy": 8.25,
+        "best": "1/7"
+      },
+      "keepers": {
+        "catches": 99,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2024",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 2,
+      "hairStyle": 1,
+      "hairColor": "#181615",
+      "beard": 0
+    }
+  },
+  {
+    "id": "HT-S7-013",
+    "name": "Amith Mishhra",
+    "country": "IND",
+    "age": 42,
+    "overseas": false,
+    "role": "BOWL",
+    "subRole": "SPIN",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm legbreak",
+    "styleTag": "Three-Hat-Trick Leg-Spin Maestro",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 91,
+    "stats": {
+      "batting": {
+        "matches": 162,
+        "runs": 381,
+        "avg": 11.2,
+        "strikeRate": 88.2
+      },
+      "bowling": {
+        "wickets": 174,
+        "economy": 7.38,
+        "best": "5/17"
+      },
+      "keepers": {
+        "catches": 25,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2024",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 2,
+      "hairColor": "#2C2A29",
+      "beard": 3
+    }
+  },
+  {
+    "id": "HT-S7-014",
+    "name": "Piyushh Chaawla",
+    "country": "IND",
+    "age": 36,
+    "overseas": false,
+    "role": "BOWL",
+    "subRole": "SPIN",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "Right-arm legbreak",
+    "styleTag": "Googly Veteran & Final Six Hero",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 91,
+    "stats": {
+      "batting": {
+        "matches": 192,
+        "runs": 624,
+        "avg": 11.8,
+        "strikeRate": 110.2
+      },
+      "bowling": {
+        "wickets": 192,
+        "economy": 7.96,
+        "best": "4/17"
+      },
+      "keepers": {
+        "catches": 45,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2024",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 4,
+      "hairStyle": 3,
+      "hairColor": "#181615",
+      "beard": 2
+    }
+  },
+  {
+    "id": "HT-S7-015",
+    "name": "Umeshh Yadhav",
+    "country": "IND",
+    "age": 37,
+    "overseas": false,
+    "role": "BOWL",
+    "subRole": "PACE",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm fast",
+    "styleTag": "Powerplay Outswing Speedster",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 90,
+    "stats": {
+      "batting": {
+        "matches": 148,
+        "runs": 128,
+        "avg": 9.8,
+        "strikeRate": 95.5
+      },
+      "bowling": {
+        "wickets": 144,
+        "economy": 8.46,
+        "best": "4/23"
+      },
+      "keepers": {
+        "catches": 31,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2010–2024",
+      "legendTier": "VETERAN"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 2,
+      "hairStyle": 4,
+      "hairColor": "#2C2A29",
+      "beard": 1
+    }
+  },
+  {
+    "id": "HT-S7-016",
+    "name": "Mohith Sharmma",
+    "country": "IND",
+    "age": 36,
+    "overseas": false,
+    "role": "BOWL",
+    "subRole": "DEATH_SPECIALIST",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm medium-fast",
+    "styleTag": "Back-of-Hand Slower-Ball Specialist",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 89,
+    "stats": {
+      "batting": {
+        "matches": 112,
+        "runs": 123,
+        "avg": 8.8,
+        "strikeRate": 93.2
+      },
+      "bowling": {
+        "wickets": 132,
+        "economy": 8.59,
+        "best": "5/10"
+      },
+      "keepers": {
+        "catches": 23,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2013–2024",
+      "legendTier": "VETERAN"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 5,
+      "hairColor": "#181615",
+      "beard": 0
+    }
+  },
+  {
+    "id": "HT-S7-017",
+    "name": "Shaunn Maresh",
+    "country": "AUS",
+    "age": 41,
+    "overseas": true,
+    "role": "BAT",
+    "subRole": "OPENER",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "Inaugural-Season Orange-Cap Stylist",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 90,
+    "stats": {
+      "batting": {
+        "matches": 71,
+        "runs": 2477,
+        "avg": 40.0,
+        "strikeRate": 132.7
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 26,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2017",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 0,
+      "hairStyle": 6,
+      "hairColor": "#3D2B1F",
+      "beard": 3
+    }
+  },
+  {
+    "id": "HT-S7-018",
+    "name": "Yusuff Pathaan",
+    "country": "IND",
+    "age": 42,
+    "overseas": false,
+    "role": "AR",
+    "subRole": "FINISHER",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm offbreak",
+    "styleTag": "37-Ball Century Powerhouse",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 91,
+    "stats": {
+      "batting": {
+        "matches": 174,
+        "runs": 3204,
+        "avg": 29.1,
+        "strikeRate": 143.0
+      },
+      "bowling": {
+        "wickets": 42,
+        "economy": 7.4,
+        "best": "3/20"
+      },
+      "keepers": {
+        "catches": 42,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2019",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 2,
+      "hairStyle": 7,
+      "hairColor": "#181615",
+      "beard": 2
+    }
+  },
+  {
+    "id": "HT-S7-019",
+    "name": "Robinn Uthapa",
+    "country": "IND",
+    "age": 39,
+    "overseas": false,
+    "role": "WK",
+    "subRole": "OPENER",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "Walking-Down-the-Track Orange Capper",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 91,
+    "stats": {
+      "batting": {
+        "matches": 205,
+        "runs": 4952,
+        "avg": 27.5,
+        "strikeRate": 130.4
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 92,
+        "stumpings": 32
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2022",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 0,
+      "hairColor": "#2C2A29",
+      "beard": 1
+    }
+  },
+  {
+    "id": "HT-S7-020",
+    "name": "Partheev Patell",
+    "country": "IND",
+    "age": 39,
+    "overseas": false,
+    "role": "WK",
+    "subRole": "OPENER",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "Powerplay Cut-Shot Pocket Dynamo",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 88,
+    "stats": {
+      "batting": {
+        "matches": 139,
+        "runs": 2848,
+        "avg": 22.6,
+        "strikeRate": 120.8
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 65,
+        "stumpings": 16
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2019",
+      "legendTier": "VETERAN"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 4,
+      "hairStyle": 1,
+      "hairColor": "#181615",
+      "beard": 0
+    }
+  },
+  {
+    "id": "HT-S7-021",
+    "name": "Ambaati Rayudoo",
+    "country": "IND",
+    "age": 39,
+    "overseas": false,
+    "role": "BAT",
+    "subRole": "ANCHOR",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "None",
+    "styleTag": "Six-Time Champion Middle-Order Rock",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 91,
+    "stats": {
+      "batting": {
+        "matches": 204,
+        "runs": 4348,
+        "avg": 28.1,
+        "strikeRate": 127.5
+      },
+      "bowling": {
+        "wickets": 0,
+        "economy": 0.0,
+        "best": "0/0"
+      },
+      "keepers": {
+        "catches": 63,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2010–2023",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 2,
+      "hairStyle": 2,
+      "hairColor": "#2C2A29",
+      "beard": 3
+    }
+  },
+  {
+    "id": "HT-S7-022",
+    "name": "Benn Stoakes",
+    "country": "ENG",
+    "age": 33,
+    "overseas": true,
+    "role": "AR",
+    "subRole": "PACE_AR",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "Right-arm fast-medium",
+    "styleTag": "2017 MVP & Clutch All-Rounder",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 94,
+    "stats": {
+      "batting": {
+        "matches": 45,
+        "runs": 935,
+        "avg": 24.6,
+        "strikeRate": 134.0
+      },
+      "bowling": {
+        "wickets": 28,
+        "economy": 8.65,
+        "best": "3/15"
+      },
+      "keepers": {
+        "catches": 25,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2017–2023",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 1,
+      "hairStyle": 3,
+      "hairColor": "#9E7B4F",
+      "beard": 2
+    }
+  },
+  {
+    "id": "HT-S7-023",
+    "name": "Albee Morkell",
+    "country": "RSA",
+    "age": 43,
+    "overseas": true,
+    "role": "AR",
+    "subRole": "PACE_AR",
+    "battingStyle": "Left-hand bat",
+    "bowlingStyle": "Right-arm medium-fast",
+    "styleTag": "125-Meter Stadium-Roof Six Machine",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 90,
+    "stats": {
+      "batting": {
+        "matches": 91,
+        "runs": 974,
+        "avg": 24.4,
+        "strikeRate": 141.9
+      },
+      "bowling": {
+        "wickets": 85,
+        "economy": 8.21,
+        "best": "4/32"
+      },
+      "keepers": {
+        "catches": 22,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2016",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 1,
+      "hairStyle": 4,
+      "hairColor": "#4B3621",
+      "beard": 1
+    }
+  },
+  {
+    "id": "HT-S7-024",
+    "name": "Harbhajaan Sing",
+    "country": "IND",
+    "age": 44,
+    "overseas": false,
+    "role": "BOWL",
+    "subRole": "SPIN",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Right-arm offbreak",
+    "styleTag": "Turbanator Doosra & Economical Spin",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 92,
+    "stats": {
+      "batting": {
+        "matches": 163,
+        "runs": 833,
+        "avg": 15.7,
+        "strikeRate": 138.1
+      },
+      "bowling": {
+        "wickets": 150,
+        "economy": 7.08,
+        "best": "5/18"
+      },
+      "keepers": {
+        "catches": 47,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2021",
+      "legendTier": "IMMORTAL"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 2,
+      "hairStyle": 5,
+      "hairColor": "#181615",
+      "beard": 0
+    }
+  },
+  {
+    "id": "HT-S7-025",
+    "name": "Zaheerr Khaan",
+    "country": "IND",
+    "age": 46,
+    "overseas": false,
+    "role": "BOWL",
+    "subRole": "PACE",
+    "battingStyle": "Right-hand bat",
+    "bowlingStyle": "Left-arm fast-medium",
+    "styleTag": "Knuckleball & Left-Arm Swing Maestro",
+    "set": 7,
+    "basePriceCr": 2.0,
+    "rating": 92,
+    "stats": {
+      "batting": {
+        "matches": 100,
+        "runs": 117,
+        "avg": 8.4,
+        "strikeRate": 83.0
+      },
+      "bowling": {
+        "wickets": 102,
+        "economy": 7.59,
+        "best": "4/17"
+      },
+      "keepers": {
+        "catches": 19,
+        "stumpings": 0
+      }
+    },
+    "formerTeam": null,
+    "vintage": {
+      "isVintage": true,
+      "era": "2008–2017",
+      "legendTier": "ICON"
+    },
+    "wildcard": {
+      "isWildcard": false,
+      "trait": null
+    },
+    "avatar": {
+      "skinTone": 3,
+      "hairStyle": 6,
+      "hairColor": "#2C2A29",
+      "beard": 3
+    }
+  }
+]
