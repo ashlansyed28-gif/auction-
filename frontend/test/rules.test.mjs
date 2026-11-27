@@ -37,6 +37,13 @@ function makePlayer(overrides = {}) {
     type: "Anchor",
     category: "Marquee",
     ovr: overrides.ovr ?? 97,
+    batOvr: overrides.batOvr ?? 97,
+    bowlOvr: overrides.bowlOvr ?? 34,
+    paceOrSpin: overrides.paceOrSpin ?? 38,
+    accuracy: overrides.accuracy ?? 42,
+    power: overrides.power ?? 92,
+    timing: overrides.timing ?? 98,
+    death: overrides.death ?? 94,
     basePriceLakhs: overrides.basePriceLakhs ?? 200,
     basePriceCr: overrides.basePriceCr ?? 2.0,
     highestScore: "122*",
@@ -60,6 +67,16 @@ test("roster.ts and players.json match all 165 players and public/players/*.jpg 
     slugs.add(p.slug);
     assert.equal(p.photoUrl, `/players/${p.slug}.jpg`);
     assert.ok(p.ovr >= 60 && p.ovr <= 99);
+    for (const metric of [p.batOvr, p.bowlOvr, p.paceOrSpin, p.accuracy, p.power, p.timing, p.death]) {
+      assert.ok(Number.isInteger(metric) && metric >= 0 && metric <= 99, `Invalid metric for ${p.name}`);
+    }
+    if (p.role === "Batter" || p.role === "WK-Batter") {
+      assert.ok(p.bowlOvr >= 25 && p.bowlOvr <= 45, `${p.name} bowlOvr ${p.bowlOvr} outside 25-45`);
+    } else if (p.role === "Bowler") {
+      assert.ok(p.batOvr >= 15 && p.batOvr <= 35, `${p.name} batOvr ${p.batOvr} outside 15-35`);
+    } else if (p.role === "All-Rounder") {
+      assert.ok(p.batOvr >= 70 && p.bowlOvr >= 70, `${p.name} All-Rounder ratings too low`);
+    }
     assert.ok(p.careerRecords.length > 0);
     assert.ok(p.highestScore || p.bestBowling, `Missing highest/best for ${p.name}`);
 

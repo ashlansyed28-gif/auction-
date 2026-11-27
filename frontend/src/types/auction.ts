@@ -126,6 +126,15 @@ export interface RoomChatMessage {
   ts: number;
 }
 
+export type ThemeMode = "dark" | "light";
+
+export interface RoomEventBanner {
+  id: string;
+  text: string;
+  kind: "INFO" | "LEAVE";
+  ts: number;
+}
+
 export interface RoomAuctionSnapshot {
   roomCode: string;
   hostClientId: string;
@@ -136,6 +145,7 @@ export interface RoomAuctionSnapshot {
   teams: FriendTeam[];
   chatMessages: RoomChatMessage[];
   teamVotes: Record<string, Record<string, TeamBidVote>>;
+  lastEventBanner?: RoomEventBanner | null;
   lotIdx: number;
   currentBidCr: number | null;
   highestBidderId: string | null;

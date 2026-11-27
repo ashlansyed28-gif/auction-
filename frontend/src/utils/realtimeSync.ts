@@ -4,6 +4,36 @@ import type {
   RoomChatMessage,
   TeamVoteChoice,
 } from "../types/auction";
+import type {
+  BowlingLength,
+  BowlingLine,
+  MatchState,
+  MatchTeamLineup,
+  PitchCondition,
+  ShotType,
+  TimingGrade,
+  WicketRule,
+} from "../engine/matchEngine";
+
+export interface OnlineQuickMatchSnapshot {
+  roomCode: string;
+  hostClientId: string;
+  guestClientId: string | null;
+  hostName: string;
+  guestName: string | null;
+  pitch: PitchCondition;
+  wicketRule: WicketRule;
+  stage: "WAITING" | "PREGAME" | "LIVE" | "COMPLETE";
+  match: MatchState | null;
+  pendingBowl: {
+    deliveryId: string;
+    length: BowlingLength;
+    line: BowlingLine;
+    releaseAccuracy: number;
+  } | null;
+  lastEventText?: string | null;
+  updatedAt: number;
+}
 
 export type RoomWireMessage =
   | { type: "STATE_SYNC"; snapshot: RoomAuctionSnapshot; senderId: string }
@@ -14,6 +44,12 @@ export type RoomWireMessage =
       friendName: string;
       emailMasked?: string;
       kitId: JerseyKitId | null;
+    }
+  | {
+      type: "LEAVE_ROOM";
+      clientId: string;
+      username: string;
+      context: "LOBBY" | "GAME";
     }
   | { type: "SWITCH_TEAM"; clientId: string; kitId: JerseyKitId | null }
   | {
@@ -35,7 +71,27 @@ export type RoomWireMessage =
   | { type: "REQUEST_SYNC"; clientId: string }
   | { type: "REMOTE_BID"; clientId: string; teamId: string }
   | { type: "REMOTE_PASS"; clientId: string; teamId: string }
-  | { type: "PING"; clientId: string; kitId?: JerseyKitId | null; ts: number };
+  | { type: "PING"; clientId: string; kitId?: JerseyKitId | null; ts: number }
+  | { type: "QM_JOIN"; clientId: string; username: string; lineup?: MatchTeamLineup }
+  | { type: "QM_STATE"; snapshot: OnlineQuickMatchSnapshot }
+  | {
+      type: "QM_BOWL";
+      clientId: string;
+      deliveryId: string;
+      length: BowlingLength;
+      line: BowlingLine;
+      releaseAccuracy: number;
+    }
+  | {
+      type: "QM_BAT";
+      clientId: string;
+      deliveryId: string;
+      shotType: ShotType;
+      timing: number;
+      timingGrade: TimingGrade;
+      lofted?: boolean;
+      stepOut?: boolean;
+    };
 
 export interface RealtimeRoomTransport {
   readonly mode: "supabase" | "local";

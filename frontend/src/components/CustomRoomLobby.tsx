@@ -5,6 +5,7 @@ import type {
   ConnectedMember,
   JerseyKitId,
   RoomChatMessage,
+  RoomEventBanner,
 } from "../types/auction";
 import { DEFAULT_TEAM_NAMES, JERSEY_THEMES } from "../utils/auctionRules";
 import { isTouchOrMobileViewport, requestLandscapeFullscreen } from "../utils/orientation";
@@ -22,6 +23,7 @@ interface CustomRoomLobbyProps {
   config: ChallengeConfig;
   members: ConnectedMember[];
   chatMessages: RoomChatMessage[];
+  eventBanner?: RoomEventBanner | null;
   joinStatus: string | null;
   onUpdateConfig: (next: ChallengeConfig) => void;
   onRegenerateCode: () => void;
@@ -45,6 +47,7 @@ export function CustomRoomLobby({
   config,
   members,
   chatMessages,
+  eventBanner,
   joinStatus,
   onUpdateConfig,
   onRegenerateCode,
@@ -199,11 +202,24 @@ export function CustomRoomLobby({
         </div>
       </header>
 
-      {joinStatus && (
-        <div className="shrink-0 max-w-7xl w-full mx-auto px-2.5 pt-1.5">
-          <div className="rounded-lg bg-sky-500/15 border border-sky-400/35 px-2.5 py-1 text-[11px] font-semibold text-sky-200 truncate">
-            {joinStatus}
-          </div>
+      {(joinStatus || eventBanner) && (
+        <div className="shrink-0 max-w-7xl w-full mx-auto px-2.5 pt-1.5 space-y-1">
+          {eventBanner && (
+            <div
+              className={`rounded-lg border px-2.5 py-1 text-[11px] font-black truncate ${
+                eventBanner.kind === "LEAVE"
+                  ? "bg-rose-500/20 border-rose-400/50 text-rose-200"
+                  : "bg-emerald-500/15 border-emerald-400/35 text-emerald-200"
+              }`}
+            >
+              {eventBanner.text}
+            </div>
+          )}
+          {joinStatus && (
+            <div className="rounded-lg bg-sky-500/15 border border-sky-400/35 px-2.5 py-1 text-[11px] font-semibold text-sky-200 truncate">
+              {joinStatus}
+            </div>
+          )}
         </div>
       )}
 

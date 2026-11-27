@@ -3,8 +3,40 @@ import { AuctionStage, type IncomingRoomCommand } from "./components/AuctionStag
 import { CustomRoomLobby } from "./components/CustomRoomLobby";
 import { EmailAuthPanel } from "./components/EmailAuthPanel";
 import { FinalScorecard } from "./components/FinalScorecard";
+import { HomeModeHub } from "./components/HomeModeHub";
+import { QuickMatchSetup, type QuickSubMode } from "./components/QuickMatchSetup";
 import { SetupLobby, type LobbyTab } from "./components/SetupLobby";
+import { SquadLineupHub } from "./components/SquadLineupHub";
+import { TournamentHub } from "./components/TournamentHub";
+import {
+  BroadcastMatchView,
+  type MatchControlMode,
+} from "./components/match/BroadcastMatchView";
+import { MatchPreGame } from "./components/match/MatchPreGame";
 import { ALL_PLAYERS, CURATED_CHALLENGE_PLAYERS } from "./data/players";
+import {
+  createMatchState,
+  resolveDelivery,
+  type BotDifficulty,
+  type BowlingLength,
+  type BowlingLine,
+  type MatchConfig,
+  type MatchState,
+  type MatchTeamLineup,
+  type PitchCondition,
+  type ShotType,
+  type TimingGrade,
+  type WicketRule,
+} from "./engine/matchEngine";
+import {
+  buildLineupsFromAuctionTeams,
+  computePointsTable,
+  createTournament,
+  recordTournamentMatchResult,
+  simulateFixtureWithEngine,
+  type TournamentFixture,
+  type TournamentState,
+} from "./engine/tournamentEngine";
 import type {
   AuthenticatedUser,
   BroadcastPlayer,
@@ -14,12 +46,15 @@ import type {
   JerseyKitId,
   RoomAuctionSnapshot,
   RoomChatMessage,
+  RoomEventBanner,
   RoomMode,
   TeamBidVote,
   TeamVoteChoice,
+  ThemeMode,
 } from "./types/auction";
 import { DEFAULT_TEAM_NAMES, JERSEY_THEMES, generateRoomCode } from "./utils/auctionRules";
 import {
+  createGuestUser,
   getCurrentAuthUser,
   getSupabaseClient,
   onAuthStateChanged,
@@ -29,23 +64,37 @@ import {
   createRealtimeTransport,
   getOrCreateClientId,
   normalizeRoomCode,
+  type OnlineQuickMatchSnapshot,
   type RealtimeRoomTransport,
   type RoomWireMessage,
 } from "./utils/realtimeSync";
 import {
   assignMemberToTeam,
+  normalizeTeamCaptains,
   transferTeamCaptain,
 } from "./utils/teamRoomHelpers";
 
-type AppScreen = "SETUP" | "STAGE" | "SCORECARD";
+type AppScreen =
+  | "HOME"
+  | "SETUP"
+  | "STAGE"
+  | "SCORECARD"
+  | "LINEUP_HUB"
+  | "TOURNAMENT"
+  | "QUICK_SETUP"
+  | "PREGAME"
+  | "MATCH";
+
+const PERSIST_KEY = "cbw_persisted_state_v1";
+const THEME_KEY = "cbw_theme_mode";
 
 const INITIAL_CONFIG: ChallengeConfig = {
   roomTitle: "CRICKET BID WARS • T20 ARENA",
-  teamCount: 10,
+  teamCount: 4,
   membersPerTeam: 4,
   purseCr: 80,
-  minSquadSize: 5,
-  maxSquadSize: 11,
+  minSquadSize: 4,
+  maxSquadSize: 4,
   maxOverseas: 4,
   poolMode: "CURATED_24",
   teamNames: [...DEFAULT_TEAM_NAMES],
@@ -54,7 +103,7 @@ const INITIAL_CONFIG: ChallengeConfig = {
 function buildTeamsFromConfig(config: ChallengeConfig, members: ConnectedMember[]): FriendTeam[] {
   const safeNames = Array.isArray(config?.teamNames) ? config.teamNames : DEFAULT_TEAM_NAMES;
   const safeMembers = Array.isArray(members) ? members : [];
-  return JERSEY_THEMES.slice(0, config.teamCount || 10).map((kit, idx) => {
+  return JERSEY_THEMES.slice(0, config.teamCount || 4).map((kit, idx) => {
     const captain =
       safeMembers.find((m) => m.kitId === kit.id && m.teamRole === "CAPTAIN") ||
       safeMembers.find((m) => m.kitId === kit.id);
@@ -82,16 +131,48 @@ function getInviteRoomFromUrl(): string {
   }
 }
 
+interface PersistedProgress {
+  savedAuctionTeams?: FriendTeam[];
+  tournament?: TournamentState | null;
+}
+
+function loadPersistedProgress(): PersistedProgress {
+  if (typeof localStorage === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    return raw ? (JSON.parse(raw) as PersistedProgress) : {};
+  } catch {
+    return {};
+  }
+}
+
 export function App() {
   const clientId = useMemo(() => getOrCreateClientId(), []);
   const inviteCode = useMemo(() => getInviteRoomFromUrl(), []);
   const supabaseConfigured = Boolean(getSupabaseClient());
 
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    try {
+      return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
+    } catch {
+      return "dark";
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+
   const [authLoading, setAuthLoading] = useState(supabaseConfigured);
   const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
   const [offlinePassPlayAllowed, setOfflinePassPlayAllowed] = useState(false);
 
-  const [screen, setScreen] = useState<AppScreen>("SETUP");
+  const [screen, setScreen] = useState<AppScreen>("HOME");
   const [lobbyTab, setLobbyTab] = useState<LobbyTab>(() => (inviteCode ? "JOIN" : "CREATE"));
   const [roomMode, setRoomMode] = useState<RoomMode>("HOST");
   const [inCustomRoom, setInCustomRoom] = useState(false);
@@ -102,6 +183,7 @@ export function App() {
   const [chatMessages, setChatMessages] = useState<RoomChatMessage[]>([]);
   const [teamVotes, setTeamVotes] = useState<Record<string, Record<string, TeamBidVote>>>({});
   const [joinStatus, setJoinStatus] = useState<string | null>(null);
+  const [eventBanner, setEventBanner] = useState<RoomEventBanner | null>(null);
 
   const [teams, setTeams] = useState<FriendTeam[]>(() => buildTeamsFromConfig(INITIAL_CONFIG, []));
   const [deck, setDeck] = useState<BroadcastPlayer[]>(CURATED_CHALLENGE_PLAYERS);
@@ -111,6 +193,41 @@ export function App() {
   const [syncedSnapshot, setSyncedSnapshot] = useState<RoomAuctionSnapshot | null>(null);
   const [incomingCommand, setIncomingCommand] = useState<IncomingRoomCommand | null>(null);
 
+  // Mode 1 Post-Auction (Step B Lineups & Step C Tournament) + Mode 2 Quick Match State
+  const initialPersisted = useMemo(() => loadPersistedProgress(), []);
+  const [savedAuctionTeams, setSavedAuctionTeams] = useState<FriendTeam[]>(
+    () => initialPersisted.savedAuctionTeams || [],
+  );
+  const [draftLineups, setDraftLineups] = useState<MatchTeamLineup[]>([]);
+  const [tournament, setTournament] = useState<TournamentState | null>(
+    () => initialPersisted.tournament || null,
+  );
+  const [activeFixture, setActiveFixture] = useState<TournamentFixture | null>(null);
+
+  const [quickSubMode, setQuickSubMode] = useState<QuickSubMode>("BOT");
+  const [pendingPreGame, setPendingPreGame] = useState<{
+    teamA: MatchTeamLineup;
+    teamB: MatchTeamLineup;
+    pitch: PitchCondition;
+    wicketRule: WicketRule;
+    botDifficulty: BotDifficulty;
+    controlMode: MatchControlMode;
+    fixtureLabel?: string;
+    fixtureId?: string;
+  } | null>(null);
+  const [activeMatch, setActiveMatch] = useState<MatchState | null>(null);
+  const [activeMatchControl, setActiveMatchControl] = useState<MatchControlMode>("VS_BOT");
+  const [activeBotDifficulty, setActiveBotDifficulty] = useState<BotDifficulty>("Medium");
+
+  // Online Friend Quick Match State
+  const [qmRoomCode, setQmRoomCode] = useState<string | null>(null);
+  const [qmSnapshot, setQmSnapshot] = useState<OnlineQuickMatchSnapshot | null>(null);
+  const [qmIsHost, setQmIsHost] = useState(false);
+  const [qmStatus, setQmStatus] = useState<string | null>(null);
+  const [qmLeftNotice, setQmLeftNotice] = useState<string | null>(null);
+  const qmTransportRef = useRef<RealtimeRoomTransport | null>(null);
+  const qmSnapRef = useRef<OnlineQuickMatchSnapshot | null>(null);
+
   const transportRef = useRef<RealtimeRoomTransport | null>(null);
   const versionRef = useRef(1);
   const cmdSeqRef = useRef(1);
@@ -119,15 +236,24 @@ export function App() {
   const chatRef = useRef<RoomChatMessage[]>([]);
   const votesRef = useRef<Record<string, Record<string, TeamBidVote>>>({});
   const configRef = useRef<ChallengeConfig>(INITIAL_CONFIG);
+  const screenRef = useRef<AppScreen>(screen);
 
   configRef.current = config;
+  screenRef.current = screen;
 
-  // Load Supabase Email Auth session on startup
+  // Persist tournament & last auction squads cleanly
   useEffect(() => {
-    if (!supabaseConfigured) {
-      setAuthLoading(false);
-      return;
-    }
+    try {
+      const payload: PersistedProgress = {
+        savedAuctionTeams,
+        tournament,
+      };
+      localStorage.setItem(PERSIST_KEY, JSON.stringify(payload));
+    } catch {}
+  }, [savedAuctionTeams, tournament]);
+
+  // Load Supabase Email Auth / Guest session on startup
+  useEffect(() => {
     let mounted = true;
     getCurrentAuthUser().then((user) => {
       if (!mounted) return;
@@ -136,21 +262,63 @@ export function App() {
     });
     const unsub = onAuthStateChanged((user) => {
       if (!mounted) return;
-      setCurrentUser(user);
+      if (user) setCurrentUser(user);
       setAuthLoading(false);
     });
     return () => {
       mounted = false;
       unsub();
     };
-  }, [supabaseConfigured]);
+  }, []);
 
   const transportMode = transportRef.current?.mode || "local";
+
+  const emitLeaveNotice = useCallback(
+    (context: "LOBBY" | "GAME") => {
+      if (!currentUser) return;
+      if (transportRef.current && roomMode !== "LOCAL") {
+        transportRef.current.send({
+          type: "LEAVE_ROOM",
+          clientId,
+          username: currentUser.username,
+          context,
+        });
+      }
+      if (qmTransportRef.current) {
+        qmTransportRef.current.send({
+          type: "LEAVE_ROOM",
+          clientId,
+          username: currentUser.username,
+          context: "GAME",
+        });
+      }
+    },
+    [clientId, currentUser, roomMode],
+  );
 
   const teardownTransport = useCallback(() => {
     transportRef.current?.destroy();
     transportRef.current = null;
   }, []);
+
+  const teardownQmTransport = useCallback(() => {
+    qmTransportRef.current?.destroy();
+    qmTransportRef.current = null;
+  }, []);
+
+  // Broadcast LEAVE_ROOM when user closes tab / refreshes mobile browser
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const ctx: "LOBBY" | "GAME" = screenRef.current === "SETUP" ? "LOBBY" : "GAME";
+      emitLeaveNotice(ctx);
+    };
+    window.addEventListener("pagehide", handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("pagehide", handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [emitLeaveNotice]);
 
   const publishHostSnapshot = useCallback(
     (nextSnap: RoomAuctionSnapshot) => {
@@ -183,6 +351,55 @@ export function App() {
     return next;
   }, []);
 
+  const showTempEventBanner = useCallback((banner: RoomEventBanner) => {
+    setEventBanner(banner);
+    setTimeout(() => {
+      setEventBanner((cur) => (cur?.id === banner.id ? null : cur));
+    }, 5500);
+  }, []);
+
+  // Host handles explicit departure OR timeout removal
+  const handleMemberDepartedOnHost = useCallback(
+    (departedId: string, username: string, context: "LOBBY" | "GAME") => {
+      const exists = membersRef.current.some((m) => m.clientId === departedId);
+      if (!exists) return;
+      const remaining = normalizeTeamCaptains(
+        membersRef.current.filter((m) => m.clientId !== departedId),
+      );
+      membersRef.current = remaining;
+      setConnectedMembers(remaining);
+
+      const leaveText =
+        context === "GAME"
+          ? `⚠️ @${username} left the game.`
+          : `⚠️ @${username} left the lobby.`;
+      const banner: RoomEventBanner = {
+        id: `leave_${Date.now()}_${departedId}`,
+        text: leaveText,
+        kind: "LEAVE",
+        ts: Date.now(),
+      };
+      showTempEventBanner(banner);
+      const nextChat = appendSystemChat(leaveText);
+
+      if (snapshotRef.current) {
+        publishHostSnapshot({
+          ...snapshotRef.current,
+          version: ++versionRef.current,
+          members: remaining,
+          teams:
+            snapshotRef.current.screen === "LOBBY"
+              ? buildTeamsFromConfig(configRef.current, remaining)
+              : snapshotRef.current.teams,
+          chatMessages: nextChat,
+          lastEventBanner: banner,
+          updatedAt: Date.now(),
+        });
+      }
+    },
+    [appendSystemChat, publishHostSnapshot, showTempEventBanner],
+  );
+
   // Initialize Host Custom Room
   const connectAsHost = useCallback(
     (
@@ -213,7 +430,7 @@ export function App() {
           senderClientId: "system",
           senderName: "System",
           kitId: null,
-          text: `@${authUser.username} created Room ${code}. Teams accept 2-${hostCfg.membersPerTeam ?? 4} members (1 Captain each).`,
+          text: `@${authUser.username} created Room ${code}. Teams hold 2-${hostCfg.membersPerTeam ?? 4} members (1 Captain each).`,
           isSystem: true,
           ts: Date.now(),
         },
@@ -225,6 +442,7 @@ export function App() {
       setConnectedMembers([hostMember]);
       setChatMessages(welcomeChat);
       setTeamVotes({});
+      setEventBanner(null);
       setInCustomRoom(true);
       setJoinStatus(null);
 
@@ -238,6 +456,7 @@ export function App() {
         teams: buildTeamsFromConfig(hostCfg, [hostMember]),
         chatMessages: welcomeChat,
         teamVotes: {},
+        lastEventBanner: null,
         lotIdx: 0,
         currentBidCr: null,
         highestBidderId: null,
@@ -272,7 +491,7 @@ export function App() {
             const assigned = result.members.find((m) => m.clientId === msg.clientId);
             const note = assigned?.kitId
               ? `@${msg.friendName} joined ${assigned.kitId.toUpperCase()} (${assigned.teamRole === "CAPTAIN" ? "Captain" : "Member"}).`
-              : `@${msg.friendName} entered Observe (pick an open team slot).`;
+              : `@${msg.friendName} entered Observe.`;
             const nextChat = appendSystemChat(note);
 
             if (snapshotRef.current) {
@@ -290,6 +509,8 @@ export function App() {
               });
             }
           }
+        } else if (msg.type === "LEAVE_ROOM") {
+          handleMemberDepartedOnHost(msg.clientId, msg.username, msg.context);
         } else if (msg.type === "SWITCH_TEAM") {
           const existing = membersRef.current.find((m) => m.clientId === msg.clientId);
           if (!existing) return;
@@ -414,27 +635,20 @@ export function App() {
         }
       });
     },
-    [clientId, publishHostSnapshot, teardownTransport, appendSystemChat],
+    [clientId, publishHostSnapshot, teardownTransport, appendSystemChat, handleMemberDepartedOnHost],
   );
 
-  // Auto-open Host Custom Room if authenticated and on CREATE tab without active room
+  // Periodic heartbeat ping + Guest initial sync retry + Host stale-peer departure detector
   useEffect(() => {
-    if (currentUser && screen === "SETUP" && lobbyTab === "CREATE" && !inCustomRoom) {
-      setRoomMode("HOST");
-      connectAsHost(roomCode, config, currentUser, selectedKitId ?? "csk");
-    }
-  }, [currentUser, screen, lobbyTab, inCustomRoom, roomCode, config, selectedKitId, connectAsHost]);
-
-  // Periodic heartbeat ping + Guest initial sync retry until first STATE_SYNC arrives
-  useEffect(() => {
-    if (!inCustomRoom && screen === "SETUP") return;
+    if (!inCustomRoom && screen !== "STAGE") return;
     if (roomMode === "LOCAL") return;
     const timer = setInterval(() => {
+      const now = Date.now();
       transportRef.current?.send({
         type: "PING",
         clientId,
         kitId: selectedKitId,
-        ts: Date.now(),
+        ts: now,
       });
       if (roomMode === "GUEST" && joinStatus && currentUser) {
         transportRef.current?.send({
@@ -447,11 +661,38 @@ export function App() {
         });
         transportRef.current?.send({ type: "REQUEST_SYNC", clientId });
       }
+      if (roomMode === "HOST") {
+        const stale = membersRef.current.filter(
+          (m) => !m.isHost && now - m.lastSeenAt > 12000,
+        );
+        for (const s of stale) {
+          handleMemberDepartedOnHost(
+            s.clientId,
+            s.friendName,
+            screenRef.current === "STAGE" ? "GAME" : "LOBBY",
+          );
+        }
+      }
     }, 2500);
     return () => clearInterval(timer);
-  }, [inCustomRoom, screen, roomMode, joinStatus, currentUser, clientId, selectedKitId]);
+  }, [
+    inCustomRoom,
+    screen,
+    roomMode,
+    joinStatus,
+    currentUser,
+    clientId,
+    selectedKitId,
+    handleMemberDepartedOnHost,
+  ]);
 
-  useEffect(() => () => teardownTransport(), [teardownTransport]);
+  useEffect(
+    () => () => {
+      teardownTransport();
+      teardownQmTransport();
+    },
+    [teardownTransport, teardownQmTransport],
+  );
 
   const handleChangeTab = (tab: LobbyTab) => {
     setLobbyTab(tab);
@@ -492,12 +733,12 @@ export function App() {
   ) => {
     const activeUser = overrideUser || currentUser;
     if (!activeUser) {
-      setJoinStatus("Sign in with your email or continue as Guest before joining a room.");
+      setJoinStatus("Enter as Guest or Sign In before joining a room.");
       return;
     }
     const code = normalizeRoomCode(rawCode);
-    if (code.length !== 6) {
-      setJoinStatus("Enter a valid 6-character room code.");
+    if (code.length < 4) {
+      setJoinStatus("Enter a valid 4-6 character room code.");
       return;
     }
     teardownTransport();
@@ -506,6 +747,7 @@ export function App() {
     setLobbyTab("JOIN");
     setSelectedKitId(kitId);
     setInCustomRoom(true);
+    setScreen("SETUP");
     setJoinStatus(`Connecting to Room ${code}… waiting for Host sync.`);
 
     const transport = createRealtimeTransport(code);
@@ -539,6 +781,9 @@ export function App() {
       setConnectedMembers(safeMembers);
       setChatMessages(safeChat);
       setTeamVotes(safeVotes);
+      if (snap.lastEventBanner) {
+        showTempEventBanner(snap.lastEventBanner);
+      }
       setDeck(safeCfg.poolMode === "FULL_165" ? ALL_PLAYERS : CURATED_CHALLENGE_PLAYERS);
       setJoinStatus(null);
 
@@ -546,6 +791,7 @@ export function App() {
         setScreen("STAGE");
       } else if (snap.screen === "SCORECARD") {
         setTeams(safeTeams);
+        setSavedAuctionTeams(safeTeams);
         setUnsoldCount(snap.unsoldCount || 0);
         setScreen("SCORECARD");
       } else {
@@ -561,6 +807,17 @@ export function App() {
     transport.subscribe((msg: RoomWireMessage) => {
       if (msg.type === "STATE_SYNC") {
         applySyncedSnapshot(msg.snapshot);
+      } else if (msg.type === "LEAVE_ROOM") {
+        const msgText =
+          msg.context === "GAME"
+            ? `⚠️ @${msg.username} left the game.`
+            : `⚠️ @${msg.username} left the lobby.`;
+        showTempEventBanner({
+          id: `gleave_${Date.now()}`,
+          text: msgText,
+          kind: "LEAVE",
+          ts: Date.now(),
+        });
       }
     });
 
@@ -713,16 +970,17 @@ export function App() {
     }
   };
 
-  const handleLeaveRoom = () => {
+  const handleLeaveRoom = (returnScreen: AppScreen = "HOME") => {
+    emitLeaveNotice(screen === "STAGE" ? "GAME" : "LOBBY");
     teardownTransport();
     setInCustomRoom(false);
     setJoinStatus(null);
     setConnectedMembers([]);
     setChatMessages([]);
     setTeamVotes({});
+    setEventBanner(null);
     setSyncedSnapshot(null);
-    setLobbyTab("JOIN");
-    setScreen("SETUP");
+    setScreen(returnScreen);
   };
 
   const launchLocal = (nextConfig: ChallengeConfig) => {
@@ -757,6 +1015,7 @@ export function App() {
       teams: builtTeams,
       chatMessages,
       teamVotes: {},
+      lastEventBanner: null,
       lotIdx: 0,
       currentBidCr: null,
       highestBidderId: null,
@@ -774,7 +1033,15 @@ export function App() {
     (
       patch: Omit<
         RoomAuctionSnapshot,
-        "roomCode" | "hostClientId" | "version" | "screen" | "config" | "members" | "chatMessages" | "teamVotes" | "updatedAt"
+        | "roomCode"
+        | "hostClientId"
+        | "version"
+        | "screen"
+        | "config"
+        | "members"
+        | "chatMessages"
+        | "teamVotes"
+        | "updatedAt"
       >,
     ) => {
       if (roomMode !== "HOST") return;
@@ -787,6 +1054,7 @@ export function App() {
         members: membersRef.current,
         chatMessages: chatRef.current,
         teamVotes: votesRef.current,
+        lastEventBanner: snapshotRef.current?.lastEventBanner ?? null,
         ...patch,
         updatedAt: Date.now(),
       });
@@ -794,7 +1062,154 @@ export function App() {
     [roomMode, roomCode, clientId, publishHostSnapshot],
   );
 
-  // Dynamic myTeamId based on my current team slot inside the room
+  // Mode 2 Online Quick Match Room Handlers
+  const handleCreateOnlineMatchRoom = (
+    code: string,
+    lineupA: MatchTeamLineup,
+    pitch: PitchCondition,
+    wicketRule: WicketRule,
+  ) => {
+    teardownQmTransport();
+    const transport = createRealtimeTransport(`QM_${code}`);
+    qmTransportRef.current = transport;
+    setQmRoomCode(code);
+    setQmIsHost(true);
+    setQmLeftNotice(null);
+    setQmStatus(`Share Code ${code} with your friend!`);
+
+    const initialQm: OnlineQuickMatchSnapshot = {
+      roomCode: code,
+      hostClientId: clientId,
+      guestClientId: null,
+      hostName: currentUser?.username || "Host",
+      guestName: null,
+      pitch,
+      wicketRule,
+      stage: "WAITING",
+      match: createMatchState(`qm_${code}`, lineupA, lineupA, {
+        seed: Date.now(),
+        pitch,
+        wicketRule,
+      }),
+      pendingBowl: null,
+      updatedAt: Date.now(),
+    };
+    qmSnapRef.current = initialQm;
+    setQmSnapshot(initialQm);
+    transport.send({ type: "QM_STATE", snapshot: initialQm });
+
+    transport.subscribe((msg) => {
+      if (msg.type === "QM_JOIN" && qmSnapRef.current) {
+        const guestLineup = msg.lineup || qmSnapRef.current.match!.teamB;
+        const nextMatch = createMatchState(
+          `qm_${code}`,
+          qmSnapRef.current.match!.teamA,
+          guestLineup,
+          { seed: Date.now(), pitch: qmSnapRef.current.pitch, wicketRule: qmSnapRef.current.wicketRule },
+        );
+        const updated: OnlineQuickMatchSnapshot = {
+          ...qmSnapRef.current,
+          guestClientId: msg.clientId,
+          guestName: msg.username,
+          match: nextMatch,
+          updatedAt: Date.now(),
+        };
+        qmSnapRef.current = updated;
+        setQmSnapshot(updated);
+        setQmStatus(`${msg.username} joined! Press Start Toss & Match.`);
+        transport.send({ type: "QM_STATE", snapshot: updated });
+      } else if (msg.type === "QM_BOWL" && qmSnapRef.current) {
+        const updated: OnlineQuickMatchSnapshot = {
+          ...qmSnapRef.current,
+          pendingBowl: {
+            deliveryId: msg.deliveryId,
+            length: msg.length,
+            line: msg.line,
+            releaseAccuracy: msg.releaseAccuracy,
+          },
+          updatedAt: Date.now(),
+        };
+        qmSnapRef.current = updated;
+        setQmSnapshot(updated);
+        transport.send({ type: "QM_STATE", snapshot: updated });
+      } else if (msg.type === "QM_BAT" && qmSnapRef.current && qmSnapRef.current.match && qmSnapRef.current.pendingBowl) {
+        const pb = qmSnapRef.current.pendingBowl;
+        if (pb.deliveryId !== msg.deliveryId) return;
+        const { match: nextMatch } = resolveDelivery(qmSnapRef.current.match, {
+          length: pb.length,
+          line: pb.line,
+          releaseAccuracy: pb.releaseAccuracy,
+          shotType: msg.shotType,
+          timing: msg.timing,
+          timingGrade: msg.timingGrade,
+          lofted: msg.lofted,
+          stepOut: msg.stepOut,
+        });
+        const updated: OnlineQuickMatchSnapshot = {
+          ...qmSnapRef.current,
+          match: nextMatch,
+          pendingBowl: null,
+          stage: nextMatch.phase === "COMPLETE" ? "COMPLETE" : "LIVE",
+          updatedAt: Date.now(),
+        };
+        qmSnapRef.current = updated;
+        setQmSnapshot(updated);
+        setActiveMatch(nextMatch);
+        transport.send({ type: "QM_STATE", snapshot: updated });
+      } else if (msg.type === "LEAVE_ROOM") {
+        setQmLeftNotice(`@${msg.username} left the game.`);
+        setQmStatus(`⚠️ @${msg.username} left the match.`);
+      } else if (msg.type === "REQUEST_SYNC" && qmSnapRef.current) {
+        transport.send({ type: "QM_STATE", snapshot: qmSnapRef.current });
+      }
+    });
+  };
+
+  const handleJoinOnlineMatchRoom = (code: string, lineupB: MatchTeamLineup) => {
+    teardownQmTransport();
+    const clean = normalizeRoomCode(code);
+    const transport = createRealtimeTransport(`QM_${clean}`);
+    qmTransportRef.current = transport;
+    setQmRoomCode(clean);
+    setQmIsHost(false);
+    setQmLeftNotice(null);
+    setQmStatus(`Joining Match Room ${clean}…`);
+
+    transport.subscribe((msg) => {
+      if (msg.type === "QM_STATE") {
+        const snap = msg.snapshot;
+        qmSnapRef.current = snap;
+        setQmSnapshot(snap);
+        setQmStatus(null);
+        if (snap.stage === "LIVE" && snap.match) {
+          setActiveMatch(snap.match);
+          setActiveMatchControl("ONLINE_FRIEND");
+          setScreen("MATCH");
+        } else if (snap.stage === "PREGAME" && snap.match) {
+          setPendingPreGame({
+            teamA: snap.match.teamA,
+            teamB: snap.match.teamB,
+            pitch: snap.pitch,
+            wicketRule: snap.wicketRule,
+            botDifficulty: "Medium",
+            controlMode: "ONLINE_FRIEND",
+          });
+          setScreen("PREGAME");
+        }
+      } else if (msg.type === "LEAVE_ROOM") {
+        setQmLeftNotice(`@${msg.username} left the game.`);
+      }
+    });
+
+    transport.send({
+      type: "QM_JOIN",
+      clientId,
+      username: currentUser?.username || "Friend",
+      lineup: lineupB,
+    });
+    transport.send({ type: "REQUEST_SYNC", clientId });
+  };
+
   const myRoomMember = connectedMembers.find((m) => m.clientId === clientId);
   const myTeamId =
     roomMode === "LOCAL"
@@ -803,16 +1218,14 @@ export function App() {
       ? `team-${myRoomMember.kitId}`
       : null;
 
-  // Loading auth session
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-sm font-bold text-amber-300">
-        Verifying secure email session…
+        Loading Cricket Bid Wars…
       </div>
     );
   }
 
-  // Require Guest or Email Auth for multiplayer rooms (or allow offline Pass & Play)
   if (!currentUser && !offlinePassPlayAllowed) {
     return (
       <EmailAuthPanel
@@ -822,21 +1235,78 @@ export function App() {
           setCurrentUser(user);
           setOfflinePassPlayAllowed(false);
           const direct = normalizeRoomCode(directRoomCode || "");
-          if (direct.length === 6) {
+          if (direct.length >= 4) {
             handleJoinRoom(direct, null, user);
           } else {
-            setLobbyTab(inviteCode ? "JOIN" : "CREATE");
+            setScreen("HOME");
           }
         }}
         onPlayOfflinePassAndPlay={() => {
+          const guest = createGuestUser("LocalHost");
+          if (guest.user) setCurrentUser(guest.user);
           setOfflinePassPlayAllowed(true);
           setLobbyTab("LOCAL");
           setRoomMode("LOCAL");
+          setScreen("HOME");
         }}
       />
     );
   }
 
+  // HOME MODE HUB (Mode 1: Auction & Play | Mode 2: Quick Match)
+  if (screen === "HOME" && currentUser) {
+    return (
+      <HomeModeHub
+        currentUser={currentUser}
+        theme={theme}
+        hasSavedTournament={Boolean(tournament)}
+        hasSavedAuctionSquads={savedAuctionTeams.length > 0}
+        onToggleTheme={toggleTheme}
+        onCreateAuctionRoom={() => {
+          const nextCode = generateRoomCode(6);
+          setRoomCode(nextCode);
+          setLobbyTab("CREATE");
+          setRoomMode("HOST");
+          setScreen("SETUP");
+          connectAsHost(nextCode, config, currentUser, selectedKitId ?? "csk");
+        }}
+        onJoinAuctionRoom={(code) => handleJoinRoom(code, null, currentUser)}
+        onPassAndPlayAuction={() => {
+          setLobbyTab("LOCAL");
+          setRoomMode("LOCAL");
+          setInCustomRoom(false);
+          setScreen("SETUP");
+        }}
+        onResumeTournament={() => {
+          if (tournament) setScreen("TOURNAMENT");
+        }}
+        onOpenLineupHubFromSaved={() => {
+          if (savedAuctionTeams.length > 0) {
+            setDraftLineups(buildLineupsFromAuctionTeams(savedAuctionTeams, ALL_PLAYERS));
+            setScreen("LINEUP_HUB");
+          }
+        }}
+        onOpenQuickMatch={(sub) => {
+          setQuickSubMode(sub);
+          setQmRoomCode(null);
+          setQmSnapshot(null);
+          setQmStatus(null);
+          setQmLeftNotice(null);
+          setScreen("QUICK_SETUP");
+        }}
+        onSignOut={async () => {
+          emitLeaveNotice("LOBBY");
+          teardownTransport();
+          teardownQmTransport();
+          await signOutAuth();
+          setCurrentUser(null);
+          setInCustomRoom(false);
+        }}
+      />
+    );
+  }
+
+  // MODE 1 STEP A: CUSTOM ROOM LOBBY OR PASS & PLAY SETUP
   if (screen === "SETUP") {
     if (currentUser && inCustomRoom && (lobbyTab === "CREATE" || lobbyTab === "JOIN")) {
       return (
@@ -849,6 +1319,7 @@ export function App() {
           config={config}
           members={connectedMembers}
           chatMessages={chatMessages}
+          eventBanner={eventBanner}
           joinStatus={joinStatus}
           onUpdateConfig={handleHostUpdateConfig}
           onRegenerateCode={() => {
@@ -861,8 +1332,9 @@ export function App() {
           onSendChat={handleSendChat}
           onQuickJoinCode={(code) => handleJoinRoom(code, null)}
           onStartMatch={launchHostedRoom}
-          onLeaveRoom={handleLeaveRoom}
+          onLeaveRoom={() => handleLeaveRoom("HOME")}
           onSignOut={async () => {
+            emitLeaveNotice("LOBBY");
             teardownTransport();
             await signOutAuth();
             setCurrentUser(null);
@@ -881,15 +1353,9 @@ export function App() {
         transportMode={transportMode}
         selectedKitId={selectedKitId}
         joinStatus={joinStatus}
-        onChangeTab={(tab) => {
-          if ((tab === "CREATE" || tab === "JOIN") && !currentUser) {
-            setOfflinePassPlayAllowed(false);
-            return;
-          }
-          handleChangeTab(tab);
-        }}
+        onChangeTab={(tab) => handleChangeTab(tab)}
         onSelectKit={setSelectedKitId}
-        onJoinRoom={handleJoinRoom}
+        onJoinRoom={(c, kit) => handleJoinRoom(c, kit)}
         onConfigChange={setConfig}
         onStartLocal={launchLocal}
         onOpenAuth={() => setOfflinePassPlayAllowed(false)}
@@ -904,6 +1370,7 @@ export function App() {
     );
   }
 
+  // MODE 1 STEP A: AUCTION STAGE
   if (screen === "STAGE") {
     return (
       <AuctionStage
@@ -920,6 +1387,7 @@ export function App() {
         myTeamId={myTeamId}
         teamVotes={teamVotes}
         chatMessages={chatMessages}
+        eventBanner={eventBanner}
         syncedSnapshot={syncedSnapshot}
         incomingCommand={incomingCommand}
         onHostPublishState={handleHostStagePublish}
@@ -933,6 +1401,7 @@ export function App() {
         onSendChat={handleSendChat}
         onFinishChallenge={(finalTeams, finalUnsold) => {
           setTeams(finalTeams);
+          setSavedAuctionTeams(finalTeams);
           setUnsoldCount(finalUnsold);
           setScreen("SCORECARD");
           if (roomMode === "HOST" && snapshotRef.current) {
@@ -947,45 +1416,350 @@ export function App() {
           }
         }}
         onExitSetup={() => {
-          setScreen("SETUP");
-          if (roomMode === "HOST" && snapshotRef.current) {
-            publishHostSnapshot({
-              ...snapshotRef.current,
-              version: ++versionRef.current,
-              screen: "LOBBY",
-              teams: buildTeamsFromConfig(config, membersRef.current),
-              updatedAt: Date.now(),
-            });
-          } else if (roomMode === "GUEST") {
-            handleLeaveRoom();
+          if (roomMode === "GUEST") {
+            handleLeaveRoom("HOME");
+          } else {
+            setScreen("SETUP");
+            if (roomMode === "HOST" && snapshotRef.current) {
+              publishHostSnapshot({
+                ...snapshotRef.current,
+                version: ++versionRef.current,
+                screen: "LOBBY",
+                teams: buildTeamsFromConfig(config, membersRef.current),
+                updatedAt: Date.now(),
+              });
+            }
           }
         }}
       />
     );
   }
 
-  return (
-    <FinalScorecard
-      teams={teams}
-      config={config}
-      unsoldCount={unsoldCount}
-      onRematch={() => (roomMode === "HOST" ? launchHostedRoom(config) : launchLocal(config))}
-      onBackToSetup={() => {
-        setScreen("SETUP");
-        if (roomMode === "HOST" && snapshotRef.current) {
-          publishHostSnapshot({
-            ...snapshotRef.current,
-            version: ++versionRef.current,
-            screen: "LOBBY",
-            teams: buildTeamsFromConfig(config, membersRef.current),
-            updatedAt: Date.now(),
+  // MODE 1 SCORECARD -> EXPORT TO LINEUP HUB
+  if (screen === "SCORECARD") {
+    return (
+      <FinalScorecard
+        teams={teams}
+        config={config}
+        unsoldCount={unsoldCount}
+        onProceedToTournament={() => {
+          setSavedAuctionTeams(teams);
+          setDraftLineups(buildLineupsFromAuctionTeams(teams, ALL_PLAYERS));
+          setScreen("LINEUP_HUB");
+        }}
+        onRematch={() => (roomMode === "HOST" ? launchHostedRoom(config) : launchLocal(config))}
+        onBackToSetup={() => {
+          if (roomMode === "GUEST") handleLeaveRoom("HOME");
+          else setScreen("HOME");
+        }}
+      />
+    );
+  }
+
+  // MODE 1 STEP B: SQUAD & LINEUP HUB
+  if (screen === "LINEUP_HUB") {
+    return (
+      <SquadLineupHub
+        initialLineups={draftLineups}
+        onBack={() => setScreen(savedAuctionTeams.length > 0 ? "SCORECARD" : "HOME")}
+        onStartTournament={(lineups, wicketRule) => {
+          const nextTour = createTournament(lineups, wicketRule, Date.now());
+          setTournament(nextTour);
+          setScreen("TOURNAMENT");
+        }}
+      />
+    );
+  }
+
+  // MODE 1 STEP C: 4-A-SIDE TOURNAMENT HUB
+  if (screen === "TOURNAMENT" && tournament) {
+    return (
+      <TournamentHub
+        tournament={tournament}
+        onPlayFixture={(fx, mode) => {
+          const tA = tournament.lineups.find((l) => l.teamId === fx.teamAId);
+          const tB = tournament.lineups.find((l) => l.teamId === fx.teamBId);
+          if (!tA || !tB) return;
+          setActiveFixture(fx);
+          if (mode === "WATCH_AI") {
+            const m = createMatchState(fx.id, tA, tB, {
+              seed: Date.now(),
+              pitch: fx.pitch,
+              wicketRule: tournament.wicketRule,
+            });
+            setActiveMatch(m);
+            setActiveMatchControl("WATCH_AI");
+            setScreen("MATCH");
+          } else {
+            setPendingPreGame({
+              teamA: tA,
+              teamB: tB,
+              pitch: fx.pitch,
+              wicketRule: tournament.wicketRule,
+              botDifficulty: "Medium",
+              controlMode: "VS_BOT",
+              fixtureLabel: fx.label,
+              fixtureId: fx.id,
+            });
+            setScreen("PREGAME");
+          }
+        }}
+        onSimFixture={(fxId) => {
+          setTournament((prev) => (prev ? simulateFixtureWithEngine(prev, fxId) : prev));
+        }}
+        onSimAllGroupMatches={() => {
+          setTournament((prev) => {
+            if (!prev) return prev;
+            let cur = prev;
+            for (const fx of cur.fixtures) {
+              if (fx.stage === "GROUP" && !fx.completedMatch) {
+                cur = simulateFixtureWithEngine(cur, fx.id);
+              }
+            }
+            return cur;
           });
-        } else if (roomMode === "GUEST") {
-          handleLeaveRoom();
+        }}
+        onNewSeason={() => setScreen("LINEUP_HUB")}
+        onBackHome={() => setScreen("HOME")}
+      />
+    );
+  }
+
+  // MODE 2: QUICK MATCH DRAFT
+  if (screen === "QUICK_SETUP") {
+    const names = qmSnapshot
+      ? [qmSnapshot.hostName, ...(qmSnapshot.guestName ? [qmSnapshot.guestName] : [])]
+      : [];
+    return (
+      <QuickMatchSetup
+        initialSubMode={quickSubMode}
+        onlineRoomCode={qmRoomCode}
+        onlineConnectedNames={names}
+        onlineWaitingStatus={qmStatus}
+        onlineIsHost={qmIsHost}
+        onCreateOnlineMatchRoom={handleCreateOnlineMatchRoom}
+        onJoinOnlineMatchRoom={handleJoinOnlineMatchRoom}
+        onStartOnlinePreGame={() => {
+          if (!qmSnapshot?.match) return;
+          const nextSnap: OnlineQuickMatchSnapshot = {
+            ...qmSnapshot,
+            stage: "PREGAME",
+            updatedAt: Date.now(),
+          };
+          qmSnapRef.current = nextSnap;
+          setQmSnapshot(nextSnap);
+          qmTransportRef.current?.send({ type: "QM_STATE", snapshot: nextSnap });
+          setPendingPreGame({
+            teamA: qmSnapshot.match.teamA,
+            teamB: qmSnapshot.match.teamB,
+            pitch: qmSnapshot.pitch,
+            wicketRule: qmSnapshot.wicketRule,
+            botDifficulty: "Medium",
+            controlMode: "ONLINE_FRIEND",
+          });
+          setScreen("PREGAME");
+        }}
+        onLaunchOfflineMatch={({ subMode, teamA, teamB, pitch, wicketRule, botDifficulty }) => {
+          setActiveFixture(null);
+          setPendingPreGame({
+            teamA,
+            teamB,
+            pitch,
+            wicketRule,
+            botDifficulty,
+            controlMode: subMode === "BOT" ? "VS_BOT" : "PASS_PLAY",
+          });
+          setScreen("PREGAME");
+        }}
+        onBack={() => {
+          if (qmTransportRef.current) {
+            emitLeaveNotice("GAME");
+            teardownQmTransport();
+          }
+          setScreen("HOME");
+        }}
+      />
+    );
+  }
+
+  // PRE-GAME VS SCREEN & COIN TOSS
+  if (screen === "PREGAME" && pendingPreGame) {
+    return (
+      <MatchPreGame
+        teamA={pendingPreGame.teamA}
+        teamB={pendingPreGame.teamB}
+        pitch={pendingPreGame.pitch}
+        wicketRule={pendingPreGame.wicketRule}
+        fixtureLabel={pendingPreGame.fixtureLabel}
+        isTeamBBot={pendingPreGame.controlMode === "VS_BOT"}
+        isOnlineGuest={pendingPreGame.controlMode === "ONLINE_FRIEND" && !qmIsHost}
+        onStartMatch={(tossWinnerId, tossDecision) => {
+          const cfg: MatchConfig = {
+            seed: Date.now(),
+            pitch: pendingPreGame.pitch,
+            wicketRule: pendingPreGame.wicketRule,
+            oversPerInnings: 6,
+            botDifficulty: pendingPreGame.botDifficulty,
+          };
+          const m = createMatchState(
+            pendingPreGame.fixtureId || `qm_${Date.now()}`,
+            pendingPreGame.teamA,
+            pendingPreGame.teamB,
+            cfg,
+            tossWinnerId,
+            tossDecision,
+          );
+          setActiveMatch(m);
+          setActiveMatchControl(pendingPreGame.controlMode);
+          setActiveBotDifficulty(pendingPreGame.botDifficulty);
+          setScreen("MATCH");
+
+          if (pendingPreGame.controlMode === "ONLINE_FRIEND" && qmIsHost && qmSnapRef.current) {
+            const liveSnap: OnlineQuickMatchSnapshot = {
+              ...qmSnapRef.current,
+              stage: "LIVE",
+              match: m,
+              pendingBowl: null,
+              updatedAt: Date.now(),
+            };
+            qmSnapRef.current = liveSnap;
+            setQmSnapshot(liveSnap);
+            qmTransportRef.current?.send({ type: "QM_STATE", snapshot: liveSnap });
+          }
+        }}
+        onBack={() => setScreen(activeFixture ? "TOURNAMENT" : "QUICK_SETUP")}
+      />
+    );
+  }
+
+  // WCC3 BROADCAST LIVE MATCH
+  if (screen === "MATCH" && activeMatch) {
+    const ptsTable = tournament
+      ? computePointsTable(tournament.lineups, tournament.fixtures)
+      : undefined;
+
+    return (
+      <BroadcastMatchView
+        initialMatch={activeMatch}
+        controlMode={activeMatchControl}
+        botDifficulty={activeBotDifficulty}
+        myOnlineTeamId={
+          activeMatchControl === "ONLINE_FRIEND"
+            ? qmIsHost
+              ? activeMatch.teamA.teamId
+              : activeMatch.teamB.teamId
+            : null
         }
-      }}
-    />
-  );
+        onlinePendingBowl={qmSnapshot?.pendingBowl || null}
+        onlineLeftNotice={qmLeftNotice}
+        pointsTable={ptsTable}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onMatchStateChange={(updated) => {
+          setActiveMatch(updated);
+          if (activeMatchControl === "ONLINE_FRIEND" && qmIsHost && qmSnapRef.current) {
+            const nextSnap: OnlineQuickMatchSnapshot = {
+              ...qmSnapRef.current,
+              match: updated,
+              stage: updated.phase === "COMPLETE" ? "COMPLETE" : "LIVE",
+              updatedAt: Date.now(),
+            };
+            qmSnapRef.current = nextSnap;
+            qmTransportRef.current?.send({ type: "QM_STATE", snapshot: nextSnap });
+          }
+        }}
+        onOnlineSubmitBowl={(length: BowlingLength, line: BowlingLine, releaseAccuracy: number) => {
+          const deliveryId = `del_${Date.now()}`;
+          if (qmIsHost && qmSnapRef.current) {
+            const nextSnap: OnlineQuickMatchSnapshot = {
+              ...qmSnapRef.current,
+              pendingBowl: { deliveryId, length, line, releaseAccuracy },
+              updatedAt: Date.now(),
+            };
+            qmSnapRef.current = nextSnap;
+            setQmSnapshot(nextSnap);
+            qmTransportRef.current?.send({ type: "QM_STATE", snapshot: nextSnap });
+          } else {
+            qmTransportRef.current?.send({
+              type: "QM_BOWL",
+              clientId,
+              deliveryId,
+              length,
+              line,
+              releaseAccuracy,
+            });
+          }
+        }}
+        onOnlineSubmitBat={(
+          deliveryId: string,
+          shotType: ShotType,
+          timing: number,
+          timingGrade: TimingGrade,
+          lofted: boolean,
+          stepOut: boolean,
+        ) => {
+          if (qmIsHost && qmSnapRef.current && qmSnapRef.current.match && qmSnapRef.current.pendingBowl) {
+            const pb = qmSnapRef.current.pendingBowl;
+            const { match: nextM } = resolveDelivery(qmSnapRef.current.match, {
+              length: pb.length,
+              line: pb.line,
+              releaseAccuracy: pb.releaseAccuracy,
+              shotType,
+              timing,
+              timingGrade,
+              lofted,
+              stepOut,
+            });
+            const nextSnap: OnlineQuickMatchSnapshot = {
+              ...qmSnapRef.current,
+              match: nextM,
+              pendingBowl: null,
+              stage: nextM.phase === "COMPLETE" ? "COMPLETE" : "LIVE",
+              updatedAt: Date.now(),
+            };
+            qmSnapRef.current = nextSnap;
+            setQmSnapshot(nextSnap);
+            setActiveMatch(nextM);
+            qmTransportRef.current?.send({ type: "QM_STATE", snapshot: nextSnap });
+          } else {
+            qmTransportRef.current?.send({
+              type: "QM_BAT",
+              clientId,
+              deliveryId,
+              shotType,
+              timing,
+              timingGrade,
+              lofted,
+              stepOut,
+            });
+          }
+        }}
+        onMatchComplete={(completed) => {
+          if (activeFixture && tournament) {
+            setTournament((prev) =>
+              prev ? recordTournamentMatchResult(prev, activeFixture.id, completed) : prev,
+            );
+            setActiveFixture(null);
+            setActiveMatch(null);
+            setScreen("TOURNAMENT");
+          } else {
+            setActiveMatch(null);
+            setScreen("HOME");
+          }
+        }}
+        onExit={() => {
+          if (activeMatchControl === "ONLINE_FRIEND") {
+            emitLeaveNotice("GAME");
+            teardownQmTransport();
+          }
+          setActiveMatch(null);
+          setScreen(activeFixture ? "TOURNAMENT" : "HOME");
+        }}
+      />
+    );
+  }
+
+  return null;
 }
 
 export default App;

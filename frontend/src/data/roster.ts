@@ -3,6 +3,7 @@ export type Category = 'Marquee' | 'Capped' | 'Uncapped';
 export interface Player {
   id: number; lotNumber: number; name: string; slug: string; photoUrl: string;
   role: Role; bat: string; bowl: string; type: string; category: Category; ovr: number;
+  batOvr: number; bowlOvr: number; paceOrSpin: number; accuracy: number; power: number; timing: number; death: number;
   basePriceLakhs: number; basePriceCr: number; highestScore?: string; bestBowling?: string; careerRecords: string;
 }
 
@@ -20,9 +21,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 98,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "bestBowling": "5/10",
-    "careerRecords": "2024 T20 WC Player of Tournament; IPL 5/10 vs KKR 2022; yorker specialist"
+    "careerRecords": "2024 T20 WC Player of Tournament; IPL 5/10 vs KKR 2022; yorker specialist",
+    "batOvr": 25,
+    "bowlOvr": 98,
+    "paceOrSpin": 99,
+    "accuracy": 99,
+    "power": 40,
+    "timing": 43,
+    "death": 99
   },
   {
     "id": 2,
@@ -37,9 +45,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 97,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "122*",
-    "careerRecords": "IPL all-time leading run-scorer (8,000+); 973 runs in IPL 2016; 4,000+ T20I runs"
+    "careerRecords": "IPL all-time leading run-scorer (8,000+); 973 runs in IPL 2016; 4,000+ T20I runs",
+    "batOvr": 97,
+    "bowlOvr": 28,
+    "paceOrSpin": 32,
+    "accuracy": 35,
+    "power": 97,
+    "timing": 99,
+    "death": 97
   },
   {
     "id": 3,
@@ -54,9 +69,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 96,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "bestBowling": "5/3",
-    "careerRecords": "Afghan T20 No.1; 5/3 vs IRE; GT star"
+    "careerRecords": "Afghan T20 No.1; 5/3 vs IRE; GT star",
+    "batOvr": 31,
+    "bowlOvr": 96,
+    "paceOrSpin": 97,
+    "accuracy": 95,
+    "power": 51,
+    "timing": 45,
+    "death": 99
   },
   {
     "id": 4,
@@ -71,9 +93,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 96,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "117",
-    "careerRecords": "4 T20I tons; ICC T20I Cricketer of the Year 2022 & 2023; long-time T20I No.1 batter"
+    "careerRecords": "4 T20I tons; ICC T20I Cricketer of the Year 2022 & 2023; long-time T20I No.1 batter",
+    "batOvr": 96,
+    "bowlOvr": 40,
+    "paceOrSpin": 44,
+    "accuracy": 47,
+    "power": 99,
+    "timing": 94,
+    "death": 99
   },
   {
     "id": 5,
@@ -88,9 +117,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 95,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "124",
-    "careerRecords": "IPL 2022 Orange Cap (863 runs, 4 tons); 2022 T20 WC winner"
+    "careerRecords": "IPL 2022 Orange Cap (863 runs, 4 tons); 2022 T20 WC winner",
+    "batOvr": 95,
+    "bowlOvr": 27,
+    "paceOrSpin": 39,
+    "accuracy": 38,
+    "power": 99,
+    "timing": 99,
+    "death": 99
   },
   {
     "id": 6,
@@ -105,9 +141,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 94,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "118",
-    "careerRecords": "5 T20I centuries (joint-record); 5 IPL titles as MI captain; led India to 2024 T20 WC"
+    "careerRecords": "5 T20I centuries (joint-record); 5 IPL titles as MI captain; led India to 2024 T20 WC",
+    "batOvr": 94,
+    "bowlOvr": 44,
+    "paceOrSpin": 48,
+    "accuracy": 56,
+    "power": 98,
+    "timing": 99,
+    "death": 97
   },
   {
     "id": 7,
@@ -122,9 +165,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 93,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "91",
-    "careerRecords": "IPL title as MI & GT captain; 2024 T20 WC final hero"
+    "careerRecords": "IPL title as MI & GT captain; 2024 T20 WC final hero",
+    "batOvr": 94,
+    "bowlOvr": 90,
+    "paceOrSpin": 88,
+    "accuracy": 91,
+    "power": 98,
+    "timing": 93,
+    "death": 99
   },
   {
     "id": 8,
@@ -139,9 +189,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 93,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "128*",
-    "careerRecords": "IPL 128* vs SRH 2018; ICC T20 WC 2024 winner"
+    "careerRecords": "IPL 128* vs SRH 2018; ICC T20 WC 2024 winner",
+    "batOvr": 93,
+    "bowlOvr": 31,
+    "paceOrSpin": 37,
+    "accuracy": 38,
+    "power": 94,
+    "timing": 96,
+    "death": 94
   },
   {
     "id": 9,
@@ -156,9 +213,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 93,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "102",
-    "careerRecords": "IPL 102 off 41 for SRH 2024; 2023 WC final hero"
+    "careerRecords": "IPL 102 off 41 for SRH 2024; 2023 WC final hero",
+    "batOvr": 93,
+    "bowlOvr": 36,
+    "paceOrSpin": 45,
+    "accuracy": 49,
+    "power": 99,
+    "timing": 97,
+    "death": 98
   },
   {
     "id": 10,
@@ -175,7 +239,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "135",
-    "careerRecords": "Highest T20I score by an Indian (135 vs ENG 2025); SRH explosive opener"
+    "careerRecords": "Highest T20I score by an Indian (135 vs ENG 2025); SRH explosive opener",
+    "batOvr": 93,
+    "bowlOvr": 88,
+    "paceOrSpin": 86,
+    "accuracy": 90,
+    "power": 99,
+    "timing": 99,
+    "death": 98
   },
   {
     "id": 11,
@@ -190,9 +261,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 92,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "88",
-    "careerRecords": "IPL MVP 2019; 2 KKR titles; 2012 & 2016 T20 WC winner"
+    "careerRecords": "IPL MVP 2019; 2 KKR titles; 2012 & 2016 T20 WC winner",
+    "batOvr": 93,
+    "bowlOvr": 88,
+    "paceOrSpin": 89,
+    "accuracy": 91,
+    "power": 97,
+    "timing": 94,
+    "death": 95
   },
   {
     "id": 12,
@@ -207,9 +285,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 92,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "105*",
-    "careerRecords": "SRH destroyer of spin; ICC top-ranked finisher"
+    "careerRecords": "SRH destroyer of spin; ICC top-ranked finisher",
+    "batOvr": 92,
+    "bowlOvr": 37,
+    "paceOrSpin": 40,
+    "accuracy": 51,
+    "power": 99,
+    "timing": 95,
+    "death": 99
   },
   {
     "id": 13,
@@ -224,9 +309,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 92,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "126*",
-    "careerRecords": "IPL 2023 Orange Cap (890 runs); T20I 126* vs NZ; GT captain"
+    "careerRecords": "IPL 2023 Orange Cap (890 runs); T20I 126* vs NZ; GT captain",
+    "batOvr": 92,
+    "bowlOvr": 25,
+    "paceOrSpin": 29,
+    "accuracy": 37,
+    "power": 93,
+    "timing": 95,
+    "death": 93
   },
   {
     "id": 14,
@@ -241,9 +333,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 91,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "132*",
-    "careerRecords": "IPL 132* vs MI 2020; 4,000+ IPL runs"
+    "careerRecords": "IPL 132* vs MI 2020; 4,000+ IPL runs",
+    "batOvr": 91,
+    "bowlOvr": 28,
+    "paceOrSpin": 40,
+    "accuracy": 39,
+    "power": 90,
+    "timing": 96,
+    "death": 89
   },
   {
     "id": 15,
@@ -258,9 +357,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 91,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "bestBowling": "3/15",
-    "careerRecords": "2023 WC winning captain; SRH captain"
+    "careerRecords": "2023 WC winning captain; SRH captain",
+    "batOvr": 17,
+    "bowlOvr": 91,
+    "paceOrSpin": 93,
+    "accuracy": 93,
+    "power": 30,
+    "timing": 28,
+    "death": 97
   },
   {
     "id": 16,
@@ -277,7 +383,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "109",
-    "careerRecords": "IPL 109 vs RR 2024; IPL 2024 MVP"
+    "careerRecords": "IPL 109 vs RR 2024; IPL 2024 MVP",
+    "batOvr": 90,
+    "bowlOvr": 92,
+    "paceOrSpin": 96,
+    "accuracy": 94,
+    "power": 90,
+    "timing": 88,
+    "death": 98
   },
   {
     "id": 17,
@@ -292,9 +405,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 91,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "124",
-    "careerRecords": "IPL 124 vs MI 2023; fastest IPL fifty (13 balls) 2023"
+    "careerRecords": "IPL 124 vs MI 2023; fastest IPL fifty (13 balls) 2023",
+    "batOvr": 91,
+    "bowlOvr": 26,
+    "paceOrSpin": 30,
+    "accuracy": 38,
+    "power": 99,
+    "timing": 99,
+    "death": 94
   },
   {
     "id": 18,
@@ -311,7 +431,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "4/9",
-    "careerRecords": "India's top T20I wicket-taker; 2024 T20 WC joint-leading"
+    "careerRecords": "India's top T20I wicket-taker; 2024 T20 WC joint-leading",
+    "batOvr": 19,
+    "bowlOvr": 90,
+    "paceOrSpin": 94,
+    "accuracy": 93,
+    "power": 43,
+    "timing": 42,
+    "death": 92
   },
   {
     "id": 19,
@@ -326,9 +453,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 90,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "122",
-    "careerRecords": "Pakistan's leading T20I run-scorer; former No.1 T20I batter"
+    "careerRecords": "Pakistan's leading T20I run-scorer; former No.1 T20I batter",
+    "batOvr": 90,
+    "bowlOvr": 34,
+    "paceOrSpin": 40,
+    "accuracy": 46,
+    "power": 92,
+    "timing": 94,
+    "death": 91
   },
   {
     "id": 20,
@@ -345,7 +479,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "145*",
-    "careerRecords": "Joint-fastest T20I ton (47 balls, 145* vs IND 2023); 2021 T20 WC"
+    "careerRecords": "Joint-fastest T20I ton (47 balls, 145* vs IND 2023); 2021 T20 WC",
+    "batOvr": 87,
+    "bowlOvr": 86,
+    "paceOrSpin": 85,
+    "accuracy": 83,
+    "power": 89,
+    "timing": 85,
+    "death": 87
   },
   {
     "id": 21,
@@ -362,7 +503,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "4/21",
-    "careerRecords": "IPL 2020 Purple Cap (30 wkts)"
+    "careerRecords": "IPL 2020 Purple Cap (30 wkts)",
+    "batOvr": 18,
+    "bowlOvr": 90,
+    "paceOrSpin": 92,
+    "accuracy": 92,
+    "power": 35,
+    "timing": 37,
+    "death": 91
   },
   {
     "id": 22,
@@ -379,7 +527,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "87",
-    "careerRecords": "Prolific six-hitter; LSG vice-captain; 2024 IPL 499 runs"
+    "careerRecords": "Prolific six-hitter; LSG vice-captain; 2024 IPL 499 runs",
+    "batOvr": 90,
+    "bowlOvr": 31,
+    "paceOrSpin": 38,
+    "accuracy": 46,
+    "power": 98,
+    "timing": 92,
+    "death": 95
   },
   {
     "id": 23,
@@ -396,7 +551,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "62*",
-    "careerRecords": "3 CSK titles; elite fielder; 2024 T20 WC winner"
+    "careerRecords": "3 CSK titles; elite fielder; 2024 T20 WC winner",
+    "batOvr": 91,
+    "bowlOvr": 83,
+    "paceOrSpin": 82,
+    "accuracy": 83,
+    "power": 96,
+    "timing": 91,
+    "death": 97
   },
   {
     "id": 24,
@@ -411,9 +573,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 90,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "111",
-    "careerRecords": "3 T20I tons incl. back-to-back vs SA 2024; RR captain"
+    "careerRecords": "3 T20I tons incl. back-to-back vs SA 2024; RR captain",
+    "batOvr": 90,
+    "bowlOvr": 29,
+    "paceOrSpin": 37,
+    "accuracy": 44,
+    "power": 98,
+    "timing": 93,
+    "death": 91
   },
   {
     "id": 25,
@@ -430,7 +599,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "4/18",
-    "careerRecords": "MI/RR new-ball master; T20 WC final 2021"
+    "careerRecords": "MI/RR new-ball master; T20 WC final 2021",
+    "batOvr": 33,
+    "bowlOvr": 90,
+    "paceOrSpin": 90,
+    "accuracy": 88,
+    "power": 52,
+    "timing": 53,
+    "death": 91
   },
   {
     "id": 26,
@@ -447,7 +623,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "4/11",
-    "careerRecords": "2023 WC leading wicket-taker; GT/SRH"
+    "careerRecords": "2023 WC leading wicket-taker; GT/SRH",
+    "batOvr": 17,
+    "bowlOvr": 89,
+    "paceOrSpin": 91,
+    "accuracy": 90,
+    "power": 34,
+    "timing": 36,
+    "death": 90
   },
   {
     "id": 27,
@@ -464,7 +647,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "96",
-    "careerRecords": "Captained KKR to IPL 2024 title; led DC to 2020 final"
+    "careerRecords": "Captained KKR to IPL 2024 title; led DC to 2020 final",
+    "batOvr": 89,
+    "bowlOvr": 45,
+    "paceOrSpin": 48,
+    "accuracy": 57,
+    "power": 89,
+    "timing": 96,
+    "death": 85
   },
   {
     "id": 28,
@@ -481,7 +671,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "126",
-    "careerRecords": "3 IPL Orange Caps; 6,500+ IPL runs; 2016 SRH title captain"
+    "careerRecords": "3 IPL Orange Caps; 6,500+ IPL runs; 2016 SRH title captain",
+    "batOvr": 88,
+    "bowlOvr": 44,
+    "paceOrSpin": 55,
+    "accuracy": 55,
+    "power": 89,
+    "timing": 94,
+    "death": 85
   },
   {
     "id": 29,
@@ -498,7 +695,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "3/15",
-    "careerRecords": "IPL 2020 MVP; 2019 WC super-over hero"
+    "careerRecords": "IPL 2020 MVP; 2019 WC super-over hero",
+    "batOvr": 30,
+    "bowlOvr": 88,
+    "paceOrSpin": 93,
+    "accuracy": 88,
+    "power": 46,
+    "timing": 49,
+    "death": 95
   },
   {
     "id": 30,
@@ -513,9 +717,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 88,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "highestScore": "84*",
-    "careerRecords": "5 IPL titles as CSK captain; 2007 T20 WC winner"
+    "careerRecords": "5 IPL titles as CSK captain; 2007 T20 WC winner",
+    "batOvr": 88,
+    "bowlOvr": 38,
+    "paceOrSpin": 50,
+    "accuracy": 54,
+    "power": 91,
+    "timing": 87,
+    "death": 90
   },
   {
     "id": 31,
@@ -530,9 +741,16 @@ export const players: Player[] = [
     "category": "Marquee",
     "ovr": 88,
     "basePriceLakhs": 200,
-    "basePriceCr": 2.0,
+    "basePriceCr": 2,
     "bestBowling": "3/13",
-    "careerRecords": "Record IPL ₹24.75 Cr (2024); KKR title"
+    "careerRecords": "Record IPL ₹24.75 Cr (2024); KKR title",
+    "batOvr": 32,
+    "bowlOvr": 88,
+    "paceOrSpin": 90,
+    "accuracy": 92,
+    "power": 53,
+    "timing": 46,
+    "death": 94
   },
   {
     "id": 32,
@@ -549,7 +767,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "4/22",
-    "careerRecords": "PSL title; Pak T20 WC 2022 finalist"
+    "careerRecords": "PSL title; Pak T20 WC 2022 finalist",
+    "batOvr": 28,
+    "bowlOvr": 88,
+    "paceOrSpin": 87,
+    "accuracy": 91,
+    "power": 46,
+    "timing": 41,
+    "death": 91
   },
   {
     "id": 33,
@@ -566,7 +791,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "5/40",
-    "careerRecords": "IPL all-time leading wicket-taker (200+); Purple Cap 2022"
+    "careerRecords": "IPL all-time leading wicket-taker (200+); Purple Cap 2022",
+    "batOvr": 16,
+    "bowlOvr": 88,
+    "paceOrSpin": 90,
+    "accuracy": 91,
+    "power": 38,
+    "timing": 38,
+    "death": 85
   },
   {
     "id": 34,
@@ -583,7 +815,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "123*",
-    "careerRecords": "IPL 2021 Orange Cap (635); T20I 123* vs AUS; CSK captain"
+    "careerRecords": "IPL 2021 Orange Cap (635); T20I 123* vs AUS; CSK captain",
+    "batOvr": 89,
+    "bowlOvr": 31,
+    "paceOrSpin": 43,
+    "accuracy": 40,
+    "power": 93,
+    "timing": 94,
+    "death": 88
   },
   {
     "id": 35,
@@ -600,7 +839,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "5/24",
-    "careerRecords": "T20I 5-for vs ENG; DC; 2024 T20 WC winner"
+    "careerRecords": "T20I 5-for vs ENG; DC; 2024 T20 WC winner",
+    "batOvr": 24,
+    "bowlOvr": 88,
+    "paceOrSpin": 88,
+    "accuracy": 91,
+    "power": 39,
+    "timing": 42,
+    "death": 90
   },
   {
     "id": 36,
@@ -617,7 +863,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "120*",
-    "careerRecords": "Back-to-back T20I tons vs SA 2024; consistent MI middle order"
+    "careerRecords": "Back-to-back T20I tons vs SA 2024; consistent MI middle order",
+    "batOvr": 88,
+    "bowlOvr": 40,
+    "paceOrSpin": 49,
+    "accuracy": 53,
+    "power": 91,
+    "timing": 90,
+    "death": 87
   },
   {
     "id": 37,
@@ -634,7 +887,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "5/17",
-    "careerRecords": "T20I 5-for vs SA 2024; KKR mystery"
+    "careerRecords": "T20I 5-for vs SA 2024; KKR mystery",
+    "batOvr": 32,
+    "bowlOvr": 88,
+    "paceOrSpin": 91,
+    "accuracy": 92,
+    "power": 53,
+    "timing": 46,
+    "death": 94
   },
   {
     "id": 38,
@@ -651,7 +911,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "4/25",
-    "careerRecords": "RCB 2025 champion; 2021 T20 WC winner"
+    "careerRecords": "RCB 2025 champion; 2021 T20 WC winner",
+    "batOvr": 32,
+    "bowlOvr": 87,
+    "paceOrSpin": 85,
+    "accuracy": 84,
+    "power": 54,
+    "timing": 54,
+    "death": 94
   },
   {
     "id": 39,
@@ -668,7 +935,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "77*",
-    "careerRecords": "2021 T20 WC Player of the Match; ex-Aus T20 captain"
+    "careerRecords": "2021 T20 WC Player of the Match; ex-Aus T20 captain",
+    "batOvr": 88,
+    "bowlOvr": 80,
+    "paceOrSpin": 80,
+    "accuracy": 78,
+    "power": 92,
+    "timing": 90,
+    "death": 90
   },
   {
     "id": 40,
@@ -685,7 +959,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "bestBowling": "4/21",
-    "careerRecords": "RCB opening bowler; GT 2025"
+    "careerRecords": "RCB opening bowler; GT 2025",
+    "batOvr": 27,
+    "bowlOvr": 87,
+    "paceOrSpin": 89,
+    "accuracy": 85,
+    "power": 46,
+    "timing": 40,
+    "death": 92
   },
   {
     "id": 41,
@@ -702,7 +983,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "119*",
-    "careerRecords": "T20I 119* vs WI; KKR 2024 title winner"
+    "careerRecords": "T20I 119* vs WI; KKR 2024 title winner",
+    "batOvr": 87,
+    "bowlOvr": 41,
+    "paceOrSpin": 48,
+    "accuracy": 49,
+    "power": 92,
+    "timing": 91,
+    "death": 93
   },
   {
     "id": 42,
@@ -719,7 +1007,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "140*",
-    "careerRecords": "IPL 140* vs KKR 2022; SA keeper-opener"
+    "careerRecords": "IPL 140* vs KKR 2022; SA keeper-opener",
+    "batOvr": 87,
+    "bowlOvr": 31,
+    "paceOrSpin": 42,
+    "accuracy": 42,
+    "power": 91,
+    "timing": 94,
+    "death": 86
   },
   {
     "id": 43,
@@ -734,9 +1029,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 87,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "69*",
-    "careerRecords": "5 sixes in final over vs GT, IPL 2023"
+    "careerRecords": "5 sixes in final over vs GT, IPL 2023",
+    "batOvr": 87,
+    "bowlOvr": 32,
+    "paceOrSpin": 41,
+    "accuracy": 48,
+    "power": 89,
+    "timing": 88,
+    "death": 87
   },
   {
     "id": 44,
@@ -753,7 +1055,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "66*",
-    "careerRecords": "2024 T20 WC winner; DC captain option"
+    "careerRecords": "2024 T20 WC winner; DC captain option",
+    "batOvr": 87,
+    "bowlOvr": 85,
+    "paceOrSpin": 83,
+    "accuracy": 85,
+    "power": 93,
+    "timing": 89,
+    "death": 88
   },
   {
     "id": 45,
@@ -768,9 +1077,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 86,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "96",
-    "careerRecords": "4,500+ IPL runs; 730 runs in IPL 2023"
+    "careerRecords": "4,500+ IPL runs; 730 runs in IPL 2023",
+    "batOvr": 86,
+    "bowlOvr": 45,
+    "paceOrSpin": 55,
+    "accuracy": 60,
+    "power": 83,
+    "timing": 93,
+    "death": 84
   },
   {
     "id": 46,
@@ -785,9 +1101,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 85,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "5/19",
-    "careerRecords": "Aus T20I leading wicket-taker; 2021 T20 WC"
+    "careerRecords": "Aus T20I leading wicket-taker; 2021 T20 WC",
+    "batOvr": 32,
+    "bowlOvr": 85,
+    "paceOrSpin": 87,
+    "accuracy": 86,
+    "power": 56,
+    "timing": 55,
+    "death": 82
   },
   {
     "id": 47,
@@ -802,9 +1125,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 85,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "100",
-    "careerRecords": "T20I ton vs ENG 2023; SA20 title-winning captain"
+    "careerRecords": "T20I ton vs ENG 2023; SA20 title-winning captain",
+    "batOvr": 85,
+    "bowlOvr": 43,
+    "paceOrSpin": 50,
+    "accuracy": 58,
+    "power": 83,
+    "timing": 91,
+    "death": 85
   },
   {
     "id": 48,
@@ -819,9 +1149,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 85,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "5/19",
-    "careerRecords": "2 Purple Caps; IPL 5/19; RCB 2025 champion"
+    "careerRecords": "2 Purple Caps; IPL 5/19; RCB 2025 champion",
+    "batOvr": 23,
+    "bowlOvr": 85,
+    "paceOrSpin": 88,
+    "accuracy": 87,
+    "power": 41,
+    "timing": 43,
+    "death": 86
   },
   {
     "id": 49,
@@ -836,9 +1173,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 85,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "101*",
-    "careerRecords": "Fastest T20I ton for SA at the time (35 balls); IPL 101*"
+    "careerRecords": "Fastest T20I ton for SA at the time (35 balls); IPL 101*",
+    "batOvr": 85,
+    "bowlOvr": 40,
+    "paceOrSpin": 43,
+    "accuracy": 47,
+    "power": 92,
+    "timing": 84,
+    "death": 86
   },
   {
     "id": 50,
@@ -855,7 +1199,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "106*",
-    "careerRecords": "IPL 106* for SRH 2025; ODI double-century"
+    "careerRecords": "IPL 106* for SRH 2025; ODI double-century",
+    "batOvr": 85,
+    "bowlOvr": 31,
+    "paceOrSpin": 39,
+    "accuracy": 46,
+    "power": 94,
+    "timing": 91,
+    "death": 92
   },
   {
     "id": 51,
@@ -870,9 +1221,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 85,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "95",
-    "careerRecords": "735 runs in IPL 2018; NZ T20I top-order mainstay"
+    "careerRecords": "735 runs in IPL 2018; NZ T20I top-order mainstay",
+    "batOvr": 85,
+    "bowlOvr": 44,
+    "paceOrSpin": 54,
+    "accuracy": 60,
+    "power": 89,
+    "timing": 89,
+    "death": 86
   },
   {
     "id": 52,
@@ -887,9 +1245,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 85,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "103",
-    "careerRecords": "Hit IPL's longest six (117 m) 2022; T20I 103"
+    "careerRecords": "Hit IPL's longest six (117 m) 2022; T20I 103",
+    "batOvr": 85,
+    "bowlOvr": 85,
+    "paceOrSpin": 84,
+    "accuracy": 88,
+    "power": 94,
+    "timing": 84,
+    "death": 88
   },
   {
     "id": 53,
@@ -906,7 +1271,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "63*",
-    "careerRecords": "Player of 2022 T20 WC; record ₹18.5 Cr IPL buy (2023)"
+    "careerRecords": "Player of 2022 T20 WC; record ₹18.5 Cr IPL buy (2023)",
+    "batOvr": 83,
+    "bowlOvr": 85,
+    "paceOrSpin": 90,
+    "accuracy": 85,
+    "power": 80,
+    "timing": 83,
+    "death": 87
   },
   {
     "id": 54,
@@ -921,9 +1293,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 85,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "95",
-    "careerRecords": "CSK spin-killer; 2024 T20 WC squad"
+    "careerRecords": "CSK spin-killer; 2024 T20 WC squad",
+    "batOvr": 82,
+    "bowlOvr": 84,
+    "paceOrSpin": 84,
+    "accuracy": 81,
+    "power": 84,
+    "timing": 80,
+    "death": 84
   },
   {
     "id": 55,
@@ -938,9 +1317,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 85,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "71",
-    "careerRecords": "T20 hat-trick vs SA 2021; 2021/22 T20I Player Awards"
+    "careerRecords": "T20 hat-trick vs SA 2021; 2021/22 T20I Player Awards",
+    "batOvr": 85,
+    "bowlOvr": 82,
+    "paceOrSpin": 82,
+    "accuracy": 81,
+    "power": 87,
+    "timing": 88,
+    "death": 84
   },
   {
     "id": 56,
@@ -955,9 +1341,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 84,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "3/21",
-    "careerRecords": "SA's fastest; DC star"
+    "careerRecords": "SA's fastest; DC star",
+    "batOvr": 25,
+    "bowlOvr": 84,
+    "paceOrSpin": 89,
+    "accuracy": 85,
+    "power": 48,
+    "timing": 47,
+    "death": 91
   },
   {
     "id": 57,
@@ -974,7 +1367,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "100*",
-    "careerRecords": "IPL 100* vs SRH 2023"
+    "careerRecords": "IPL 100* vs SRH 2023",
+    "batOvr": 85,
+    "bowlOvr": 78,
+    "paceOrSpin": 80,
+    "accuracy": 77,
+    "power": 86,
+    "timing": 91,
+    "death": 82
   },
   {
     "id": 58,
@@ -989,9 +1389,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 84,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "81",
-    "careerRecords": "England T20 World Cup 2022 winner; fast scorer"
+    "careerRecords": "England T20 World Cup 2022 winner; fast scorer",
+    "batOvr": 84,
+    "bowlOvr": 45,
+    "paceOrSpin": 51,
+    "accuracy": 52,
+    "power": 85,
+    "timing": 83,
+    "death": 87
   },
   {
     "id": 59,
@@ -1006,9 +1413,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 84,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "124*",
-    "careerRecords": "IPL 124* vs CSK 2024; 2021 T20 WC winner"
+    "careerRecords": "IPL 124* vs CSK 2024; 2021 T20 WC winner",
+    "batOvr": 85,
+    "bowlOvr": 79,
+    "paceOrSpin": 81,
+    "accuracy": 77,
+    "power": 94,
+    "timing": 88,
+    "death": 90
   },
   {
     "id": 60,
@@ -1023,9 +1437,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 84,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "104*",
-    "careerRecords": "Pakistan T20I run-machine; first T20I ton for Pak keeper"
+    "careerRecords": "Pakistan T20I run-machine; first T20I ton for Pak keeper",
+    "batOvr": 84,
+    "bowlOvr": 37,
+    "paceOrSpin": 43,
+    "accuracy": 44,
+    "power": 87,
+    "timing": 86,
+    "death": 87
   },
   {
     "id": 61,
@@ -1040,9 +1461,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 84,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "103",
-    "careerRecords": "IPL 103 vs CSK 2024; prolific for GT"
+    "careerRecords": "IPL 103 vs CSK 2024; prolific for GT",
+    "batOvr": 84,
+    "bowlOvr": 28,
+    "paceOrSpin": 34,
+    "accuracy": 38,
+    "power": 81,
+    "timing": 88,
+    "death": 84
   },
   {
     "id": 62,
@@ -1057,9 +1485,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 84,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "75*",
-    "careerRecords": "Singapore-born Aus finisher; MI/RCB death-overs hitter"
+    "careerRecords": "Singapore-born Aus finisher; MI/RCB death-overs hitter",
+    "batOvr": 84,
+    "bowlOvr": 25,
+    "paceOrSpin": 37,
+    "accuracy": 41,
+    "power": 86,
+    "timing": 86,
+    "death": 88
   },
   {
     "id": 63,
@@ -1074,9 +1509,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 84,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "100*",
-    "careerRecords": "IPL 100* off 41 vs GT 2024"
+    "careerRecords": "IPL 100* off 41 vs GT 2024",
+    "batOvr": 85,
+    "bowlOvr": 82,
+    "paceOrSpin": 80,
+    "accuracy": 79,
+    "power": 91,
+    "timing": 87,
+    "death": 90
   },
   {
     "id": 64,
@@ -1091,9 +1533,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 83,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "4/2",
-    "careerRecords": "England T20 WC 2022 winner; leading Eng wicket-taker"
+    "careerRecords": "England T20 WC 2022 winner; leading Eng wicket-taker",
+    "batOvr": 32,
+    "bowlOvr": 83,
+    "paceOrSpin": 84,
+    "accuracy": 82,
+    "power": 52,
+    "timing": 53,
+    "death": 86
   },
   {
     "id": 65,
@@ -1108,9 +1557,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 83,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "4/0",
-    "careerRecords": "4-4-0-3 in 2024 T20 WC vs PNG (maidens)"
+    "careerRecords": "4-4-0-3 in 2024 T20 WC vs PNG (maidens)",
+    "batOvr": 19,
+    "bowlOvr": 83,
+    "paceOrSpin": 88,
+    "accuracy": 88,
+    "power": 34,
+    "timing": 37,
+    "death": 90
   },
   {
     "id": 66,
@@ -1125,9 +1581,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 83,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "47",
-    "careerRecords": "Tall left-arm swing; SRH/PBKS"
+    "careerRecords": "Tall left-arm swing; SRH/PBKS",
+    "batOvr": 81,
+    "bowlOvr": 84,
+    "paceOrSpin": 82,
+    "accuracy": 87,
+    "power": 81,
+    "timing": 80,
+    "death": 80
   },
   {
     "id": 67,
@@ -1142,9 +1605,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 83,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "4/28",
-    "careerRecords": "CSK 'Baby Malinga'"
+    "careerRecords": "CSK 'Baby Malinga'",
+    "batOvr": 18,
+    "bowlOvr": 83,
+    "paceOrSpin": 84,
+    "accuracy": 84,
+    "power": 41,
+    "timing": 40,
+    "death": 86
   },
   {
     "id": 68,
@@ -1159,9 +1629,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 83,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "4/34",
-    "careerRecords": "Test legend; CSK/RR spinner"
+    "careerRecords": "Test legend; CSK/RR spinner",
+    "batOvr": 29,
+    "bowlOvr": 83,
+    "paceOrSpin": 82,
+    "accuracy": 81,
+    "power": 52,
+    "timing": 44,
+    "death": 83
   },
   {
     "id": 69,
@@ -1176,9 +1653,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 83,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "4/13",
-    "careerRecords": "T20I No.1 bowler 2022-23; LSG/PBKS"
+    "careerRecords": "T20I No.1 bowler 2022-23; LSG/PBKS",
+    "batOvr": 35,
+    "bowlOvr": 83,
+    "paceOrSpin": 84,
+    "accuracy": 80,
+    "power": 50,
+    "timing": 46,
+    "death": 86
   },
   {
     "id": 70,
@@ -1195,7 +1679,14 @@ export const players: Player[] = [
     "basePriceLakhs": 150,
     "basePriceCr": 1.5,
     "highestScore": "107",
-    "careerRecords": "IPL 107 vs RR 2017; 2022 T20 WC final hero"
+    "careerRecords": "IPL 107 vs RR 2017; 2022 T20 WC final hero",
+    "batOvr": 83,
+    "bowlOvr": 80,
+    "paceOrSpin": 80,
+    "accuracy": 83,
+    "power": 91,
+    "timing": 84,
+    "death": 90
   },
   {
     "id": 71,
@@ -1210,9 +1701,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 82,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "6/7",
-    "careerRecords": "T20I 6/7 vs BAN 2019 - best ever T20I figures"
+    "careerRecords": "T20I 6/7 vs BAN 2019 - best ever T20I figures",
+    "batOvr": 16,
+    "bowlOvr": 82,
+    "paceOrSpin": 84,
+    "accuracy": 85,
+    "power": 31,
+    "timing": 34,
+    "death": 83
   },
   {
     "id": 72,
@@ -1229,7 +1727,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "5/9",
-    "careerRecords": "2024 T20 WC leading wicket-taker (17)"
+    "careerRecords": "2024 T20 WC leading wicket-taker (17)",
+    "batOvr": 28,
+    "bowlOvr": 82,
+    "paceOrSpin": 84,
+    "accuracy": 80,
+    "power": 51,
+    "timing": 50,
+    "death": 83
   },
   {
     "id": 73,
@@ -1246,7 +1751,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "137",
-    "careerRecords": "NZ's highest T20I score (137 vs PAK 2024)"
+    "careerRecords": "NZ's highest T20I score (137 vs PAK 2024)",
+    "batOvr": 82,
+    "bowlOvr": 39,
+    "paceOrSpin": 51,
+    "accuracy": 48,
+    "power": 86,
+    "timing": 84,
+    "death": 86
   },
   {
     "id": 74,
@@ -1261,9 +1773,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 82,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "4/22",
-    "careerRecords": "PSL champion; 150 kmph"
+    "careerRecords": "PSL champion; 150 kmph",
+    "batOvr": 35,
+    "bowlOvr": 82,
+    "paceOrSpin": 87,
+    "accuracy": 85,
+    "power": 49,
+    "timing": 46,
+    "death": 82
   },
   {
     "id": 75,
@@ -1278,9 +1797,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 82,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "5/27",
-    "careerRecords": "IPL 2021 Purple Cap (32 wkts)"
+    "careerRecords": "IPL 2021 Purple Cap (32 wkts)",
+    "batOvr": 21,
+    "bowlOvr": 82,
+    "paceOrSpin": 82,
+    "accuracy": 82,
+    "power": 33,
+    "timing": 31,
+    "death": 86
   },
   {
     "id": 76,
@@ -1295,9 +1821,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 82,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "108*",
-    "careerRecords": "IPL 108* vs KKR 2024 (record chase)"
+    "careerRecords": "IPL 108* vs KKR 2024 (record chase)",
+    "batOvr": 82,
+    "bowlOvr": 37,
+    "paceOrSpin": 44,
+    "accuracy": 52,
+    "power": 87,
+    "timing": 89,
+    "death": 82
   },
   {
     "id": 77,
@@ -1314,7 +1847,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "103",
-    "careerRecords": "T20I 103 vs SCO 2024; Aus T20I keeper"
+    "careerRecords": "T20I 103 vs SCO 2024; Aus T20I keeper",
+    "batOvr": 82,
+    "bowlOvr": 41,
+    "paceOrSpin": 53,
+    "accuracy": 55,
+    "power": 84,
+    "timing": 81,
+    "death": 82
   },
   {
     "id": 78,
@@ -1329,9 +1869,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 82,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "3/21",
-    "careerRecords": "Eng T20 WC 2022 winner; 150+ kmph"
+    "careerRecords": "Eng T20 WC 2022 winner; 150+ kmph",
+    "batOvr": 25,
+    "bowlOvr": 82,
+    "paceOrSpin": 82,
+    "accuracy": 82,
+    "power": 41,
+    "timing": 37,
+    "death": 87
   },
   {
     "id": 79,
@@ -1346,9 +1893,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 82,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "77",
-    "careerRecords": "NZ spin tight-bowler; CSK mainstay"
+    "careerRecords": "NZ spin tight-bowler; CSK mainstay",
+    "batOvr": 81,
+    "bowlOvr": 81,
+    "paceOrSpin": 79,
+    "accuracy": 79,
+    "power": 79,
+    "timing": 84,
+    "death": 81
   },
   {
     "id": 80,
@@ -1363,9 +1917,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 82,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "6/22",
-    "careerRecords": "IPL 2016 champion; best Ban T20I fig"
+    "careerRecords": "IPL 2016 champion; best Ban T20I fig",
+    "batOvr": 24,
+    "bowlOvr": 82,
+    "paceOrSpin": 84,
+    "accuracy": 81,
+    "power": 44,
+    "timing": 45,
+    "death": 85
   },
   {
     "id": 81,
@@ -1382,7 +1943,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "76",
-    "careerRecords": "MCG Test hundred; SRH all-rounder"
+    "careerRecords": "MCG Test hundred; SRH all-rounder",
+    "batOvr": 83,
+    "bowlOvr": 81,
+    "paceOrSpin": 84,
+    "accuracy": 82,
+    "power": 87,
+    "timing": 82,
+    "death": 87
   },
   {
     "id": 82,
@@ -1397,9 +1965,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 82,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "4/18",
-    "careerRecords": "CSK mystery spinner; Afghan star"
+    "careerRecords": "CSK mystery spinner; Afghan star",
+    "batOvr": 33,
+    "bowlOvr": 82,
+    "paceOrSpin": 86,
+    "accuracy": 84,
+    "power": 53,
+    "timing": 54,
+    "death": 82
   },
   {
     "id": 83,
@@ -1414,9 +1989,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 82,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "bestBowling": "4/30",
-    "careerRecords": "IPL 2022 purple cap contender; GT 2025"
+    "careerRecords": "IPL 2022 purple cap contender; GT 2025",
+    "batOvr": 34,
+    "bowlOvr": 82,
+    "paceOrSpin": 83,
+    "accuracy": 82,
+    "power": 51,
+    "timing": 53,
+    "death": 82
   },
   {
     "id": 84,
@@ -1433,7 +2015,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "112*",
-    "careerRecords": "IPL 112* vs LSG in 2022 eliminator"
+    "careerRecords": "IPL 112* vs LSG in 2022 eliminator",
+    "batOvr": 82,
+    "bowlOvr": 44,
+    "paceOrSpin": 56,
+    "accuracy": 53,
+    "power": 85,
+    "timing": 84,
+    "death": 84
   },
   {
     "id": 85,
@@ -1450,7 +2039,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "95",
-    "careerRecords": "RR captain; 573 runs in IPL 2024"
+    "careerRecords": "RR captain; 573 runs in IPL 2024",
+    "batOvr": 82,
+    "bowlOvr": 79,
+    "paceOrSpin": 80,
+    "accuracy": 77,
+    "power": 85,
+    "timing": 80,
+    "death": 83
   },
   {
     "id": 86,
@@ -1467,7 +2063,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "106*",
-    "careerRecords": "6,700+ IPL runs; 2 IPL tons"
+    "careerRecords": "6,700+ IPL runs; 2 IPL tons",
+    "batOvr": 82,
+    "bowlOvr": 34,
+    "paceOrSpin": 41,
+    "accuracy": 44,
+    "power": 82,
+    "timing": 86,
+    "death": 78
   },
   {
     "id": 87,
@@ -1484,7 +2087,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "83",
-    "careerRecords": "West Indies finisher; RR/DC strike-rate hitter"
+    "careerRecords": "West Indies finisher; RR/DC strike-rate hitter",
+    "batOvr": 82,
+    "bowlOvr": 44,
+    "paceOrSpin": 52,
+    "accuracy": 52,
+    "power": 84,
+    "timing": 86,
+    "death": 84
   },
   {
     "id": 88,
@@ -1501,7 +2111,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "3/24",
-    "careerRecords": "KKR 2024 champion"
+    "careerRecords": "KKR 2024 champion",
+    "batOvr": 20,
+    "bowlOvr": 81,
+    "paceOrSpin": 79,
+    "accuracy": 83,
+    "power": 34,
+    "timing": 38,
+    "death": 81
   },
   {
     "id": 89,
@@ -1518,7 +2135,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "50",
-    "careerRecords": "Powerplay specialist; SRH/GT tenure"
+    "careerRecords": "Powerplay specialist; SRH/GT tenure",
+    "batOvr": 79,
+    "bowlOvr": 82,
+    "paceOrSpin": 81,
+    "accuracy": 80,
+    "power": 82,
+    "timing": 80,
+    "death": 84
   },
   {
     "id": 90,
@@ -1535,7 +2159,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "3/23",
-    "careerRecords": "Purple-cap contender; RR/LSG/DC"
+    "careerRecords": "Purple-cap contender; RR/LSG/DC",
+    "batOvr": 29,
+    "bowlOvr": 80,
+    "paceOrSpin": 85,
+    "accuracy": 80,
+    "power": 52,
+    "timing": 51,
+    "death": 83
   },
   {
     "id": 91,
@@ -1552,7 +2183,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "83*",
-    "careerRecords": "Afghan 2023 WC star; PBKS 2024"
+    "careerRecords": "Afghan 2023 WC star; PBKS 2024",
+    "batOvr": 78,
+    "bowlOvr": 77,
+    "paceOrSpin": 80,
+    "accuracy": 80,
+    "power": 75,
+    "timing": 81,
+    "death": 78
   },
   {
     "id": 92,
@@ -1569,7 +2207,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "103*",
-    "careerRecords": "Former No.1 T20I batter; T20I 103* vs NZ"
+    "careerRecords": "Former No.1 T20I batter; T20I 103* vs NZ",
+    "batOvr": 80,
+    "bowlOvr": 36,
+    "paceOrSpin": 45,
+    "accuracy": 52,
+    "power": 83,
+    "timing": 83,
+    "death": 77
   },
   {
     "id": 93,
@@ -1586,7 +2231,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "110",
-    "careerRecords": "Eng prodigy; RCB acquisition"
+    "careerRecords": "Eng prodigy; RCB acquisition",
+    "batOvr": 81,
+    "bowlOvr": 79,
+    "paceOrSpin": 77,
+    "accuracy": 78,
+    "power": 79,
+    "timing": 88,
+    "death": 77
   },
   {
     "id": 94,
@@ -1603,7 +2255,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "93*",
-    "careerRecords": "Fast hitter; 2022 T20 WC winner"
+    "careerRecords": "Fast hitter; 2022 T20 WC winner",
+    "batOvr": 77,
+    "bowlOvr": 79,
+    "paceOrSpin": 82,
+    "accuracy": 81,
+    "power": 86,
+    "timing": 79,
+    "death": 82
   },
   {
     "id": 95,
@@ -1620,7 +2279,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "72",
-    "careerRecords": "2023 WC breakout; CSK 2024"
+    "careerRecords": "2023 WC breakout; CSK 2024",
+    "batOvr": 81,
+    "bowlOvr": 77,
+    "paceOrSpin": 78,
+    "accuracy": 80,
+    "power": 83,
+    "timing": 89,
+    "death": 80
   },
   {
     "id": 96,
@@ -1637,7 +2303,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "87",
-    "careerRecords": "Afghanistan opener; KKR 2023 hitter"
+    "careerRecords": "Afghanistan opener; KKR 2023 hitter",
+    "batOvr": 80,
+    "bowlOvr": 35,
+    "paceOrSpin": 38,
+    "accuracy": 44,
+    "power": 83,
+    "timing": 86,
+    "death": 86
   },
   {
     "id": 97,
@@ -1654,7 +2327,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "109",
-    "careerRecords": "T20I 109 vs IND 2022"
+    "careerRecords": "T20I 109 vs IND 2022",
+    "batOvr": 80,
+    "bowlOvr": 45,
+    "paceOrSpin": 55,
+    "accuracy": 60,
+    "power": 89,
+    "timing": 80,
+    "death": 81
   },
   {
     "id": 98,
@@ -1671,7 +2351,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "52",
-    "careerRecords": "Pakistan T20 vice-captain; PSL champion"
+    "careerRecords": "Pakistan T20 vice-captain; PSL champion",
+    "batOvr": 80,
+    "bowlOvr": 79,
+    "paceOrSpin": 82,
+    "accuracy": 78,
+    "power": 78,
+    "timing": 83,
+    "death": 78
   },
   {
     "id": 99,
@@ -1686,9 +2373,16 @@ export const players: Player[] = [
     "category": "Capped",
     "ovr": 80,
     "basePriceLakhs": 100,
-    "basePriceCr": 1.0,
+    "basePriceCr": 1,
     "highestScore": "84",
-    "careerRecords": "Bangladesh's leading T20I wicket-taker; Bangladesh T20I leading wicket-taker; multi-format star"
+    "careerRecords": "Bangladesh's leading T20I wicket-taker; Bangladesh T20I leading wicket-taker; multi-format star",
+    "batOvr": 79,
+    "bowlOvr": 80,
+    "paceOrSpin": 80,
+    "accuracy": 82,
+    "power": 76,
+    "timing": 78,
+    "death": 76
   },
   {
     "id": 100,
@@ -1705,7 +2399,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "4/19",
-    "careerRecords": "Yorker king; SRH"
+    "careerRecords": "Yorker king; SRH",
+    "batOvr": 27,
+    "bowlOvr": 80,
+    "paceOrSpin": 85,
+    "accuracy": 81,
+    "power": 43,
+    "timing": 39,
+    "death": 87
   },
   {
     "id": 101,
@@ -1722,7 +2423,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "4/28",
-    "careerRecords": "Former No.1 T20I bowler"
+    "careerRecords": "Former No.1 T20I bowler",
+    "batOvr": 28,
+    "bowlOvr": 80,
+    "paceOrSpin": 79,
+    "accuracy": 81,
+    "power": 45,
+    "timing": 47,
+    "death": 80
   },
   {
     "id": 102,
@@ -1739,7 +2447,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "104",
-    "careerRecords": "IPL 104 vs MI 2023; KKR 2024 champion"
+    "careerRecords": "IPL 104 vs MI 2023; KKR 2024 champion",
+    "batOvr": 81,
+    "bowlOvr": 79,
+    "paceOrSpin": 77,
+    "accuracy": 81,
+    "power": 84,
+    "timing": 86,
+    "death": 78
   },
   {
     "id": 103,
@@ -1756,7 +2471,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "4/22",
-    "careerRecords": "SA left-arm spinner; SA20 champion"
+    "careerRecords": "SA left-arm spinner; SA20 champion",
+    "batOvr": 23,
+    "bowlOvr": 79,
+    "paceOrSpin": 82,
+    "accuracy": 76,
+    "power": 38,
+    "timing": 41,
+    "death": 79
   },
   {
     "id": 104,
@@ -1773,7 +2495,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "3/25",
-    "careerRecords": "CSK/DC left-arm"
+    "careerRecords": "CSK/DC left-arm",
+    "batOvr": 20,
+    "bowlOvr": 79,
+    "paceOrSpin": 82,
+    "accuracy": 76,
+    "power": 39,
+    "timing": 40,
+    "death": 81
   },
   {
     "id": 105,
@@ -1790,7 +2519,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "4/10",
-    "careerRecords": "CSK/DC seamer"
+    "careerRecords": "CSK/DC seamer",
+    "batOvr": 24,
+    "bowlOvr": 79,
+    "paceOrSpin": 83,
+    "accuracy": 81,
+    "power": 48,
+    "timing": 40,
+    "death": 84
   },
   {
     "id": 106,
@@ -1807,7 +2543,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "3/17",
-    "careerRecords": "CSK/RR spinner"
+    "careerRecords": "CSK/RR spinner",
+    "batOvr": 30,
+    "bowlOvr": 79,
+    "paceOrSpin": 78,
+    "accuracy": 77,
+    "power": 49,
+    "timing": 50,
+    "death": 82
   },
   {
     "id": 107,
@@ -1824,7 +2567,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "52*",
-    "careerRecords": "Late-order destroyer; MI/LSG"
+    "careerRecords": "Late-order destroyer; MI/LSG",
+    "batOvr": 80,
+    "bowlOvr": 72,
+    "paceOrSpin": 74,
+    "accuracy": 74,
+    "power": 88,
+    "timing": 82,
+    "death": 81
   },
   {
     "id": 108,
@@ -1841,7 +2591,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "68",
-    "careerRecords": "Lord Shardul; CSK/KKR strike bowler"
+    "careerRecords": "Lord Shardul; CSK/KKR strike bowler",
+    "batOvr": 76,
+    "bowlOvr": 75,
+    "paceOrSpin": 78,
+    "accuracy": 75,
+    "power": 74,
+    "timing": 77,
+    "death": 76
   },
   {
     "id": 109,
@@ -1858,7 +2615,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "80",
-    "careerRecords": "Heavy hitter for WI; MI buy"
+    "careerRecords": "Heavy hitter for WI; MI buy",
+    "batOvr": 80,
+    "bowlOvr": 78,
+    "paceOrSpin": 77,
+    "accuracy": 76,
+    "power": 89,
+    "timing": 83,
+    "death": 85
   },
   {
     "id": 110,
@@ -1875,7 +2639,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "82",
-    "careerRecords": "Zimbabwe's best T20 all-rounder"
+    "careerRecords": "Zimbabwe's best T20 all-rounder",
+    "batOvr": 77,
+    "bowlOvr": 77,
+    "paceOrSpin": 77,
+    "accuracy": 76,
+    "power": 76,
+    "timing": 79,
+    "death": 79
   },
   {
     "id": 111,
@@ -1892,7 +2663,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "101*",
-    "careerRecords": "IPL 101* for RCB vs RR 2021"
+    "careerRecords": "IPL 101* for RCB vs RR 2021",
+    "batOvr": 78,
+    "bowlOvr": 41,
+    "paceOrSpin": 49,
+    "accuracy": 54,
+    "power": 75,
+    "timing": 82,
+    "death": 74
   },
   {
     "id": 112,
@@ -1909,7 +2687,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "97*",
-    "careerRecords": "2007 T20 WC; veteran RCB finisher"
+    "careerRecords": "2007 T20 WC; veteran RCB finisher",
+    "batOvr": 78,
+    "bowlOvr": 31,
+    "paceOrSpin": 38,
+    "accuracy": 41,
+    "power": 84,
+    "timing": 77,
+    "death": 81
   },
   {
     "id": 113,
@@ -1926,7 +2711,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "91",
-    "careerRecords": "Pakistan T20I opener; PSL title winner"
+    "careerRecords": "Pakistan T20I opener; PSL title winner",
+    "batOvr": 78,
+    "bowlOvr": 38,
+    "paceOrSpin": 45,
+    "accuracy": 46,
+    "power": 76,
+    "timing": 80,
+    "death": 76
   },
   {
     "id": 114,
@@ -1943,7 +2735,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "highestScore": "47",
-    "careerRecords": "Tall seamer; IPL & CPL veteran"
+    "careerRecords": "Tall seamer; IPL & CPL veteran",
+    "batOvr": 77,
+    "bowlOvr": 79,
+    "paceOrSpin": 81,
+    "accuracy": 78,
+    "power": 77,
+    "timing": 76,
+    "death": 85
   },
   {
     "id": 115,
@@ -1960,7 +2759,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "86*",
-    "careerRecords": "IPL champion with MI & RCB (2025)"
+    "careerRecords": "IPL champion with MI & RCB (2025)",
+    "batOvr": 76,
+    "bowlOvr": 77,
+    "paceOrSpin": 76,
+    "accuracy": 80,
+    "power": 78,
+    "timing": 75,
+    "death": 74
   },
   {
     "id": 116,
@@ -1977,7 +2783,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "3/14",
-    "careerRecords": "Afghan T20 specialist"
+    "careerRecords": "Afghan T20 specialist",
+    "batOvr": 35,
+    "bowlOvr": 78,
+    "paceOrSpin": 80,
+    "accuracy": 83,
+    "power": 60,
+    "timing": 51,
+    "death": 84
   },
   {
     "id": 117,
@@ -1994,7 +2807,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "bestBowling": "3/20",
-    "careerRecords": "DC death bowler"
+    "careerRecords": "DC death bowler",
+    "batOvr": 18,
+    "bowlOvr": 78,
+    "paceOrSpin": 78,
+    "accuracy": 77,
+    "power": 37,
+    "timing": 38,
+    "death": 85
   },
   {
     "id": 118,
@@ -2011,7 +2831,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "4/32",
-    "careerRecords": "Pak pace sensation"
+    "careerRecords": "Pak pace sensation",
+    "batOvr": 35,
+    "bowlOvr": 78,
+    "paceOrSpin": 81,
+    "accuracy": 77,
+    "power": 47,
+    "timing": 45,
+    "death": 84
   },
   {
     "id": 119,
@@ -2028,7 +2855,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "53",
-    "careerRecords": "Famous 5-sixes chase vs PBKS 2020"
+    "careerRecords": "Famous 5-sixes chase vs PBKS 2020",
+    "batOvr": 79,
+    "bowlOvr": 77,
+    "paceOrSpin": 75,
+    "accuracy": 76,
+    "power": 85,
+    "timing": 79,
+    "death": 80
   },
   {
     "id": 120,
@@ -2045,7 +2879,14 @@ export const players: Player[] = [
     "basePriceLakhs": 75,
     "basePriceCr": 0.75,
     "bestBowling": "5/18",
-    "careerRecords": "NZ's leading T20I wicket-taker"
+    "careerRecords": "NZ's leading T20I wicket-taker",
+    "batOvr": 34,
+    "bowlOvr": 78,
+    "paceOrSpin": 80,
+    "accuracy": 81,
+    "power": 56,
+    "timing": 56,
+    "death": 76
   },
   {
     "id": 121,
@@ -2062,7 +2903,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "bestBowling": "3/22",
-    "careerRecords": "RCB 2025 title winner"
+    "careerRecords": "RCB 2025 title winner",
+    "batOvr": 33,
+    "bowlOvr": 78,
+    "paceOrSpin": 76,
+    "accuracy": 79,
+    "power": 47,
+    "timing": 44,
+    "death": 81
   },
   {
     "id": 122,
@@ -2079,7 +2927,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "73",
-    "careerRecords": "LSG opener; WI T20 power hitter"
+    "careerRecords": "LSG opener; WI T20 power hitter",
+    "batOvr": 78,
+    "bowlOvr": 74,
+    "paceOrSpin": 74,
+    "accuracy": 74,
+    "power": 84,
+    "timing": 84,
+    "death": 85
   },
   {
     "id": 123,
@@ -2096,7 +2951,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "84",
-    "careerRecords": "Afghan T20 veteran; T20 WC 2024 semifinalist"
+    "careerRecords": "Afghan T20 veteran; T20 WC 2024 semifinalist",
+    "batOvr": 75,
+    "bowlOvr": 75,
+    "paceOrSpin": 75,
+    "accuracy": 72,
+    "power": 79,
+    "timing": 76,
+    "death": 76
   },
   {
     "id": 124,
@@ -2113,7 +2975,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "bestBowling": "3/22",
-    "careerRecords": "Eng left-arm swing; RCB"
+    "careerRecords": "Eng left-arm swing; RCB",
+    "batOvr": 15,
+    "bowlOvr": 77,
+    "paceOrSpin": 75,
+    "accuracy": 74,
+    "power": 34,
+    "timing": 35,
+    "death": 77
   },
   {
     "id": 125,
@@ -2130,7 +2999,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "49",
-    "careerRecords": "PBKS/RCB finisher-keeper"
+    "careerRecords": "PBKS/RCB finisher-keeper",
+    "batOvr": 76,
+    "bowlOvr": 43,
+    "paceOrSpin": 49,
+    "accuracy": 53,
+    "power": 82,
+    "timing": 78,
+    "death": 83
   },
   {
     "id": 126,
@@ -2147,7 +3023,14 @@ export const players: Player[] = [
     "basePriceLakhs": 40,
     "basePriceCr": 0.4,
     "bestBowling": "4/16",
-    "careerRecords": "Defended 11 off last over vs MI, 2023"
+    "careerRecords": "Defended 11 off last over vs MI, 2023",
+    "batOvr": 28,
+    "bowlOvr": 76,
+    "paceOrSpin": 74,
+    "accuracy": 77,
+    "power": 45,
+    "timing": 40,
+    "death": 73
   },
   {
     "id": 127,
@@ -2164,7 +3047,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "75",
-    "careerRecords": "Sri Lanka top-order; T20 WC 2022 contributor"
+    "careerRecords": "Sri Lanka top-order; T20 WC 2022 contributor",
+    "batOvr": 76,
+    "bowlOvr": 31,
+    "paceOrSpin": 43,
+    "accuracy": 47,
+    "power": 78,
+    "timing": 84,
+    "death": 75
   },
   {
     "id": 128,
@@ -2181,7 +3071,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "99",
-    "careerRecords": "IPL 99 vs KKR 2021; ex-India U19 WC winning captain"
+    "careerRecords": "IPL 99 vs KKR 2021; ex-India U19 WC winning captain",
+    "batOvr": 76,
+    "bowlOvr": 36,
+    "paceOrSpin": 46,
+    "accuracy": 52,
+    "power": 78,
+    "timing": 81,
+    "death": 82
   },
   {
     "id": 129,
@@ -2198,7 +3095,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "bestBowling": "4/27",
-    "careerRecords": "MI/PBKS leggie"
+    "careerRecords": "MI/PBKS leggie",
+    "batOvr": 33,
+    "bowlOvr": 76,
+    "paceOrSpin": 79,
+    "accuracy": 76,
+    "power": 53,
+    "timing": 54,
+    "death": 77
   },
   {
     "id": 130,
@@ -2215,7 +3119,14 @@ export const players: Player[] = [
     "basePriceLakhs": 40,
     "basePriceCr": 0.4,
     "highestScore": "93",
-    "careerRecords": "Aggressive top/middle order in IPL"
+    "careerRecords": "Aggressive top/middle order in IPL",
+    "batOvr": 76,
+    "bowlOvr": 37,
+    "paceOrSpin": 46,
+    "accuracy": 45,
+    "power": 74,
+    "timing": 79,
+    "death": 78
   },
   {
     "id": 131,
@@ -2232,7 +3143,14 @@ export const players: Player[] = [
     "basePriceLakhs": 40,
     "basePriceCr": 0.4,
     "bestBowling": "3/27",
-    "careerRecords": "CSK 2023 title winner"
+    "careerRecords": "CSK 2023 title winner",
+    "batOvr": 26,
+    "bowlOvr": 76,
+    "paceOrSpin": 77,
+    "accuracy": 78,
+    "power": 46,
+    "timing": 40,
+    "death": 79
   },
   {
     "id": 132,
@@ -2249,7 +3167,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "bestBowling": "5/25",
-    "careerRecords": "IPL 2022 fastest ball 157 kmph"
+    "careerRecords": "IPL 2022 fastest ball 157 kmph",
+    "batOvr": 22,
+    "bowlOvr": 76,
+    "paceOrSpin": 80,
+    "accuracy": 75,
+    "power": 37,
+    "timing": 33,
+    "death": 83
   },
   {
     "id": 133,
@@ -2266,7 +3191,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "105*",
-    "careerRecords": "IPL 105*; veteran of 4,000+ IPL runs"
+    "careerRecords": "IPL 105*; veteran of 4,000+ IPL runs",
+    "batOvr": 75,
+    "bowlOvr": 39,
+    "paceOrSpin": 49,
+    "accuracy": 50,
+    "power": 78,
+    "timing": 80,
+    "death": 72
   },
   {
     "id": 134,
@@ -2283,7 +3215,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "47",
-    "careerRecords": "MI & Sydney Thunder death specialist"
+    "careerRecords": "MI & Sydney Thunder death specialist",
+    "batOvr": 75,
+    "bowlOvr": 75,
+    "paceOrSpin": 76,
+    "accuracy": 74,
+    "power": 76,
+    "timing": 73,
+    "death": 80
   },
   {
     "id": 135,
@@ -2300,7 +3239,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "105",
-    "careerRecords": "T20I ton vs IRE 2022"
+    "careerRecords": "T20I ton vs IRE 2022",
+    "batOvr": 72,
+    "bowlOvr": 74,
+    "paceOrSpin": 76,
+    "accuracy": 71,
+    "power": 75,
+    "timing": 75,
+    "death": 73
   },
   {
     "id": 136,
@@ -2317,7 +3263,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "71",
-    "careerRecords": "Test triple-centurion; Vidarbha stalwart"
+    "careerRecords": "Test triple-centurion; Vidarbha stalwart",
+    "batOvr": 75,
+    "bowlOvr": 30,
+    "paceOrSpin": 34,
+    "accuracy": 44,
+    "power": 75,
+    "timing": 74,
+    "death": 77
   },
   {
     "id": 137,
@@ -2334,7 +3287,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "44",
-    "careerRecords": "Pakistan spin all-rounder"
+    "careerRecords": "Pakistan spin all-rounder",
+    "batOvr": 74,
+    "bowlOvr": 72,
+    "paceOrSpin": 70,
+    "accuracy": 75,
+    "power": 77,
+    "timing": 75,
+    "death": 77
   },
   {
     "id": 138,
@@ -2351,7 +3311,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "74",
-    "careerRecords": "Sri Lanka captain; 2022 Asia Cup winner"
+    "careerRecords": "Sri Lanka captain; 2022 Asia Cup winner",
+    "batOvr": 75,
+    "bowlOvr": 70,
+    "paceOrSpin": 69,
+    "accuracy": 73,
+    "power": 82,
+    "timing": 74,
+    "death": 76
   },
   {
     "id": 139,
@@ -2368,7 +3335,14 @@ export const players: Player[] = [
     "basePriceLakhs": 40,
     "basePriceCr": 0.4,
     "highestScore": "63",
-    "careerRecords": "PSL stalwart; 2017 CT winner"
+    "careerRecords": "PSL stalwart; 2017 CT winner",
+    "batOvr": 72,
+    "bowlOvr": 73,
+    "paceOrSpin": 74,
+    "accuracy": 70,
+    "power": 75,
+    "timing": 75,
+    "death": 72
   },
   {
     "id": 140,
@@ -2385,7 +3359,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "114*",
-    "careerRecords": "First Indian IPL centurion (114* vs DC 2009)"
+    "careerRecords": "First Indian IPL centurion (114* vs DC 2009)",
+    "batOvr": 74,
+    "bowlOvr": 31,
+    "paceOrSpin": 34,
+    "accuracy": 40,
+    "power": 78,
+    "timing": 77,
+    "death": 73
   },
   {
     "id": 141,
@@ -2402,7 +3383,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "106",
-    "careerRecords": "IPL 106 vs RR 2020"
+    "careerRecords": "IPL 106 vs RR 2020",
+    "batOvr": 74,
+    "bowlOvr": 25,
+    "paceOrSpin": 31,
+    "accuracy": 32,
+    "power": 71,
+    "timing": 78,
+    "death": 76
   },
   {
     "id": 142,
@@ -2419,7 +3407,14 @@ export const players: Player[] = [
     "basePriceLakhs": 40,
     "basePriceCr": 0.4,
     "highestScore": "31",
-    "careerRecords": "WI six-hitter; PBKS"
+    "careerRecords": "WI six-hitter; PBKS",
+    "batOvr": 73,
+    "bowlOvr": 71,
+    "paceOrSpin": 72,
+    "accuracy": 72,
+    "power": 80,
+    "timing": 75,
+    "death": 78
   },
   {
     "id": 143,
@@ -2436,7 +3431,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "48",
-    "careerRecords": "RCB/SRH utility player"
+    "careerRecords": "RCB/SRH utility player",
+    "batOvr": 74,
+    "bowlOvr": 71,
+    "paceOrSpin": 73,
+    "accuracy": 73,
+    "power": 77,
+    "timing": 73,
+    "death": 75
   },
   {
     "id": 144,
@@ -2453,7 +3455,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "39",
-    "careerRecords": "SL left-arm spinner; U19 WC captain"
+    "careerRecords": "SL left-arm spinner; U19 WC captain",
+    "batOvr": 72,
+    "bowlOvr": 74,
+    "paceOrSpin": 73,
+    "accuracy": 71,
+    "power": 73,
+    "timing": 75,
+    "death": 77
   },
   {
     "id": 145,
@@ -2470,7 +3479,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "63",
-    "careerRecords": "GT/KKR utility; 2019 WC squad"
+    "careerRecords": "GT/KKR utility; 2019 WC squad",
+    "batOvr": 72,
+    "bowlOvr": 70,
+    "paceOrSpin": 69,
+    "accuracy": 73,
+    "power": 73,
+    "timing": 75,
+    "death": 75
   },
   {
     "id": 146,
@@ -2487,7 +3503,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "115*",
-    "careerRecords": "IPL final 115* for PBKS 2014"
+    "careerRecords": "IPL final 115* for PBKS 2014",
+    "batOvr": 73,
+    "bowlOvr": 34,
+    "paceOrSpin": 46,
+    "accuracy": 48,
+    "power": 74,
+    "timing": 75,
+    "death": 76
   },
   {
     "id": 147,
@@ -2504,7 +3527,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "78",
-    "careerRecords": "Andhra keeper; GT/DC option"
+    "careerRecords": "Andhra keeper; GT/DC option",
+    "batOvr": 72,
+    "bowlOvr": 39,
+    "paceOrSpin": 51,
+    "accuracy": 50,
+    "power": 70,
+    "timing": 79,
+    "death": 68
   },
   {
     "id": 148,
@@ -2521,7 +3551,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "84",
-    "careerRecords": "15-ball IPL fifty for DC 2024"
+    "careerRecords": "15-ball IPL fifty for DC 2024",
+    "batOvr": 80,
+    "bowlOvr": 43,
+    "paceOrSpin": 50,
+    "accuracy": 58,
+    "power": 86,
+    "timing": 84,
+    "death": 87
   },
   {
     "id": 149,
@@ -2538,7 +3575,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "bestBowling": "3/14",
-    "careerRecords": "156+ kmph on IPL 2024 debut"
+    "careerRecords": "156+ kmph on IPL 2024 debut",
+    "batOvr": 25,
+    "bowlOvr": 80,
+    "paceOrSpin": 85,
+    "accuracy": 84,
+    "power": 39,
+    "timing": 36,
+    "death": 80
   },
   {
     "id": 150,
@@ -2555,7 +3599,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "101",
-    "careerRecords": "Youngest IPL centurion (35-ball ton for RR, 2025)"
+    "careerRecords": "Youngest IPL centurion (35-ball ton for RR, 2025)",
+    "batOvr": 80,
+    "bowlOvr": 25,
+    "paceOrSpin": 30,
+    "accuracy": 40,
+    "power": 83,
+    "timing": 84,
+    "death": 80
   },
   {
     "id": 151,
@@ -2572,7 +3623,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "162",
-    "careerRecords": "U19 WC 2022 top scorer; 'Baby AB'"
+    "careerRecords": "U19 WC 2022 top scorer; 'Baby AB'",
+    "batOvr": 79,
+    "bowlOvr": 34,
+    "paceOrSpin": 40,
+    "accuracy": 41,
+    "power": 82,
+    "timing": 82,
+    "death": 81
   },
   {
     "id": 152,
@@ -2589,7 +3647,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "103",
-    "careerRecords": "IPL 103 off 42 vs CSK 2025 for PBKS"
+    "careerRecords": "IPL 103 off 42 vs CSK 2025 for PBKS",
+    "batOvr": 79,
+    "bowlOvr": 43,
+    "paceOrSpin": 50,
+    "accuracy": 53,
+    "power": 81,
+    "timing": 87,
+    "death": 83
   },
   {
     "id": 153,
@@ -2606,7 +3671,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "68*",
-    "careerRecords": "PBKS finisher; IPL 2024 breakout"
+    "careerRecords": "PBKS finisher; IPL 2024 breakout",
+    "batOvr": 78,
+    "bowlOvr": 45,
+    "paceOrSpin": 52,
+    "accuracy": 53,
+    "power": 81,
+    "timing": 81,
+    "death": 84
   },
   {
     "id": 154,
@@ -2623,7 +3695,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "66",
-    "careerRecords": "Late-order hitter; PBKS 2024 sensation"
+    "careerRecords": "Late-order hitter; PBKS 2024 sensation",
+    "batOvr": 77,
+    "bowlOvr": 28,
+    "paceOrSpin": 33,
+    "accuracy": 43,
+    "power": 80,
+    "timing": 79,
+    "death": 81
   },
   {
     "id": 155,
@@ -2640,7 +3719,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "68",
-    "careerRecords": "RR keeper-batter; strong Test debut"
+    "careerRecords": "RR keeper-batter; strong Test debut",
+    "batOvr": 77,
+    "bowlOvr": 42,
+    "paceOrSpin": 53,
+    "accuracy": 58,
+    "power": 81,
+    "timing": 79,
+    "death": 83
   },
   {
     "id": 156,
@@ -2657,7 +3743,14 @@ export const players: Player[] = [
     "basePriceLakhs": 50,
     "basePriceCr": 0.5,
     "highestScore": "99",
-    "careerRecords": "Big Bash 99 on debut; PBKS buy"
+    "careerRecords": "Big Bash 99 on debut; PBKS buy",
+    "batOvr": 74,
+    "bowlOvr": 72,
+    "paceOrSpin": 74,
+    "accuracy": 69,
+    "power": 76,
+    "timing": 77,
+    "death": 78
   },
   {
     "id": 157,
@@ -2674,7 +3767,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "58",
-    "careerRecords": "DC keeper-batter; Bengal domestic"
+    "careerRecords": "DC keeper-batter; Bengal domestic",
+    "batOvr": 75,
+    "bowlOvr": 39,
+    "paceOrSpin": 47,
+    "accuracy": 47,
+    "power": 78,
+    "timing": 82,
+    "death": 72
   },
   {
     "id": 158,
@@ -2691,7 +3791,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "74",
-    "careerRecords": "LSG finisher; Delhi domestic star"
+    "careerRecords": "LSG finisher; Delhi domestic star",
+    "batOvr": 75,
+    "bowlOvr": 43,
+    "paceOrSpin": 51,
+    "accuracy": 53,
+    "power": 79,
+    "timing": 75,
+    "death": 79
   },
   {
     "id": 159,
@@ -2708,7 +3815,14 @@ export const players: Player[] = [
     "basePriceLakhs": 20,
     "basePriceCr": 0.2,
     "highestScore": "46",
-    "careerRecords": "Young MI middle-order hitter"
+    "careerRecords": "Young MI middle-order hitter",
+    "batOvr": 74,
+    "bowlOvr": 27,
+    "paceOrSpin": 33,
+    "accuracy": 39,
+    "power": 82,
+    "timing": 72,
+    "death": 77
   },
   {
     "id": 160,
@@ -2725,7 +3839,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "64",
-    "careerRecords": "Punjab left-hander; PBKS/MI middle order"
+    "careerRecords": "Punjab left-hander; PBKS/MI middle order",
+    "batOvr": 74,
+    "bowlOvr": 43,
+    "paceOrSpin": 48,
+    "accuracy": 50,
+    "power": 72,
+    "timing": 75,
+    "death": 70
   },
   {
     "id": 161,
@@ -2742,7 +3863,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "35",
-    "careerRecords": "KKR finisher; 2024 title winner"
+    "careerRecords": "KKR finisher; 2024 title winner",
+    "batOvr": 75,
+    "bowlOvr": 70,
+    "paceOrSpin": 73,
+    "accuracy": 70,
+    "power": 83,
+    "timing": 79,
+    "death": 78
   },
   {
     "id": 162,
@@ -2759,7 +3887,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "63",
-    "careerRecords": "Mumbai domestic run machine"
+    "careerRecords": "Mumbai domestic run machine",
+    "batOvr": 74,
+    "bowlOvr": 26,
+    "paceOrSpin": 37,
+    "accuracy": 37,
+    "power": 75,
+    "timing": 78,
+    "death": 71
   },
   {
     "id": 163,
@@ -2776,7 +3911,14 @@ export const players: Player[] = [
     "basePriceLakhs": 30,
     "basePriceCr": 0.3,
     "highestScore": "54",
-    "careerRecords": "U19 WC 2022 winner; KKR top-order"
+    "careerRecords": "U19 WC 2022 winner; KKR top-order",
+    "batOvr": 73,
+    "bowlOvr": 32,
+    "paceOrSpin": 36,
+    "accuracy": 39,
+    "power": 73,
+    "timing": 78,
+    "death": 75
   },
   {
     "id": 164,
@@ -2793,7 +3935,14 @@ export const players: Player[] = [
     "basePriceLakhs": 20,
     "basePriceCr": 0.2,
     "highestScore": "47",
-    "careerRecords": "KKR spin all-rounder"
+    "careerRecords": "KKR spin all-rounder",
+    "batOvr": 70,
+    "bowlOvr": 72,
+    "paceOrSpin": 74,
+    "accuracy": 70,
+    "power": 72,
+    "timing": 71,
+    "death": 69
   },
   {
     "id": 165,
@@ -2810,6 +3959,13 @@ export const players: Player[] = [
     "basePriceLakhs": 20,
     "basePriceCr": 0.2,
     "highestScore": "54",
-    "careerRecords": "RCB/RR domestic finisher"
+    "careerRecords": "RCB/RR domestic finisher",
+    "batOvr": 73,
+    "bowlOvr": 70,
+    "paceOrSpin": 69,
+    "accuracy": 68,
+    "power": 78,
+    "timing": 76,
+    "death": 75
   }
 ];

@@ -7,6 +7,7 @@ import type {
   FriendTeam,
   RoomAuctionSnapshot,
   RoomChatMessage,
+  RoomEventBanner,
   RoomMode,
   TeamBidVote,
   TeamVoteChoice,
@@ -51,6 +52,7 @@ interface AuctionStageProps {
   myTeamId: string | null;
   teamVotes: Record<string, Record<string, TeamBidVote>>;
   chatMessages: RoomChatMessage[];
+  eventBanner?: RoomEventBanner | null;
   syncedSnapshot: RoomAuctionSnapshot | null;
   incomingCommand: IncomingRoomCommand | null;
   onHostPublishState?: (
@@ -91,6 +93,7 @@ export function AuctionStage({
   myTeamId,
   teamVotes,
   chatMessages,
+  eventBanner,
   syncedSnapshot,
   incomingCommand,
   onHostPublishState,
@@ -734,6 +737,25 @@ export function AuctionStage({
           </div>
         </div>
       </header>
+
+      {/* Player Left / Room Event Alert */}
+      {(() => {
+        const activeBanner = (isGuest ? syncedSnapshot?.lastEventBanner : eventBanner) || eventBanner;
+        if (!activeBanner) return null;
+        return (
+          <div className="max-w-6xl w-full mx-auto px-2.5 sm:px-4 pt-2">
+            <div
+              className={`rounded-xl border px-3 py-1.5 text-xs font-black text-center ${
+                activeBanner.kind === "LEAVE"
+                  ? "bg-rose-500/20 border-rose-400/50 text-rose-200"
+                  : "bg-emerald-500/15 border-emerald-400/35 text-emerald-200"
+              }`}
+            >
+              {activeBanner.text}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Purse Strip for All Friend Teams (Single-row scroll on mobile landscape, grid on desktop) */}
       <div className="max-w-6xl w-full mx-auto px-2.5 sm:px-4 pt-2">

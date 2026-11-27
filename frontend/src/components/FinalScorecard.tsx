@@ -6,6 +6,7 @@ interface FinalScorecardProps {
   teams: FriendTeam[];
   config: ChallengeConfig;
   unsoldCount: number;
+  onProceedToTournament?: () => void;
   onRematch: () => void;
   onBackToSetup: () => void;
 }
@@ -14,6 +15,7 @@ export function FinalScorecard({
   teams,
   config,
   unsoldCount,
+  onProceedToTournament,
   onRematch,
   onBackToSetup,
 }: FinalScorecardProps) {
@@ -146,19 +148,28 @@ export function FinalScorecard({
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mt-6">
+        {onProceedToTournament && (
+          <button
+            type="button"
+            onClick={onProceedToTournament}
+            className="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black uppercase tracking-wider cursor-pointer shadow-lg"
+          >
+            🏏 Step B: Squad Lineups &amp; 4-a-Side Tournament →
+          </button>
+        )}
         <button
           type="button"
           onClick={onRematch}
-          className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-amber-300 to-yellow-500 text-slate-950 font-black uppercase tracking-wider cursor-pointer"
+          className="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-300 to-yellow-500 text-slate-950 font-black uppercase tracking-wider cursor-pointer"
         >
-          Rematch With Same Teams
+          Rematch Auction
         </button>
         <button
           type="button"
           onClick={onBackToSetup}
-          className="flex-1 py-3.5 rounded-xl bg-slate-800 border border-white/15 text-white font-bold uppercase tracking-wider cursor-pointer"
+          className="flex-1 py-3.5 px-4 rounded-xl bg-slate-800 border border-white/15 text-white font-bold uppercase tracking-wider cursor-pointer"
         >
-          Back to Room Setup
+          Home / Lobby
         </button>
       </div>
     </div>
