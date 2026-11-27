@@ -485,9 +485,14 @@ export function App() {
     }
   };
 
-  const handleJoinRoom = (rawCode: string, kitId: JerseyKitId | null) => {
-    if (!currentUser) {
-      setJoinStatus("Sign in with your email before joining a room.");
+  const handleJoinRoom = (
+    rawCode: string,
+    kitId: JerseyKitId | null,
+    overrideUser?: AuthenticatedUser,
+  ) => {
+    const activeUser = overrideUser || currentUser;
+    if (!activeUser) {
+      setJoinStatus("Sign in with your email or continue as Guest before joining a room.");
       return;
     }
     const code = normalizeRoomCode(rawCode);
@@ -498,6 +503,7 @@ export function App() {
     teardownTransport();
     setRoomCode(code);
     setRoomMode("GUEST");
+    setLobbyTab("JOIN");
     setSelectedKitId(kitId);
     setInCustomRoom(true);
     setJoinStatus(`Connecting to Room ${code}… waiting for Host sync.`);
@@ -561,9 +567,9 @@ export function App() {
     transport.send({
       type: "JOIN_REQUEST",
       clientId,
-      userId: currentUser.userId,
-      friendName: currentUser.username,
-      emailMasked: currentUser.emailMasked,
+      userId: activeUser.userId,
+      friendName: activeUser.username,
+      emailMasked: activeUser.emailMasked,
       kitId,
     });
     transport.send({ type: "REQUEST_SYNC", clientId });
@@ -806,15 +812,21 @@ export function App() {
     );
   }
 
-  // Require Email Auth for multiplayer rooms (or allow offline Pass & Play)
+  // Require Guest or Email Auth for multiplayer rooms (or allow offline Pass & Play)
   if (!currentUser && !offlinePassPlayAllowed) {
     return (
       <EmailAuthPanel
         supabaseConfigured={supabaseConfigured}
-        onAuthenticated={(user) => {
+        initialRoomCode={inviteCode}
+        onAuthenticated={(user, directRoomCode) => {
           setCurrentUser(user);
           setOfflinePassPlayAllowed(false);
-          setLobbyTab(inviteCode ? "JOIN" : "CREATE");
+          const direct = normalizeRoomCode(directRoomCode || "");
+          if (direct.length === 6) {
+            handleJoinRoom(direct, null, user);
+          } else {
+            setLobbyTab(inviteCode ? "JOIN" : "CREATE");
+          }
         }}
         onPlayOfflinePassAndPlay={() => {
           setOfflinePassPlayAllowed(true);
@@ -847,6 +859,7 @@ export function App() {
           onSwitchTeam={handleSwitchTeam}
           onPromoteCaptain={handlePromoteCaptain}
           onSendChat={handleSendChat}
+          onQuickJoinCode={(code) => handleJoinRoom(code, null)}
           onStartMatch={launchHostedRoom}
           onLeaveRoom={handleLeaveRoom}
           onSignOut={async () => {

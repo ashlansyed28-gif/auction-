@@ -8,6 +8,7 @@ import type {
 } from "../types/auction";
 import { DEFAULT_TEAM_NAMES, JERSEY_THEMES } from "../utils/auctionRules";
 import { isTouchOrMobileViewport, requestLandscapeFullscreen } from "../utils/orientation";
+import { normalizeRoomCode } from "../utils/realtimeSync";
 import { voiceEngine } from "../utils/voiceEngine";
 import { FullscreenLandscapeButton } from "./LandscapeGuard";
 import { CricketJerseySvg } from "./illustrations/CricketJerseySvg";
@@ -27,6 +28,7 @@ interface CustomRoomLobbyProps {
   onSwitchTeam: (kitId: JerseyKitId | null) => void;
   onPromoteCaptain: (kitId: JerseyKitId, targetClientId: string) => void;
   onSendChat: (text: string) => void;
+  onQuickJoinCode?: (code: string) => void;
   onStartMatch: (finalConfig: ChallengeConfig) => void;
   onLeaveRoom: () => void;
   onSignOut: () => void;
@@ -49,12 +51,14 @@ export function CustomRoomLobby({
   onSwitchTeam,
   onPromoteCaptain,
   onSendChat,
+  onQuickJoinCode,
   onStartMatch,
   onLeaveRoom,
   onSignOut,
 }: CustomRoomLobbyProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showObserveDrawer, setShowObserveDrawer] = useState(false);
+  const [quickJoinInput, setQuickJoinInput] = useState("");
   const [chatInput, setChatInput] = useState("");
   const [copiedType, setCopiedType] = useState<"CODE" | "INVITE" | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -136,6 +140,35 @@ export function CustomRoomLobby({
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
+          {onQuickJoinCode && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const cleaned = normalizeRoomCode(quickJoinInput);
+                if (cleaned.length === 6) {
+                  onQuickJoinCode(cleaned);
+                  setQuickJoinInput("");
+                }
+              }}
+              className="flex items-center gap-1 bg-slate-900 border border-white/15 rounded-lg p-0.5"
+            >
+              <input
+                type="text"
+                maxLength={6}
+                value={quickJoinInput}
+                onChange={(e) => setQuickJoinInput(normalizeRoomCode(e.target.value))}
+                placeholder="Join Code"
+                className="w-20 bg-transparent px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black tracking-widest uppercase text-amber-300 focus:outline-none tnum"
+              />
+              <button
+                type="submit"
+                disabled={quickJoinInput.length !== 6}
+                className="px-2 py-0.5 rounded bg-sky-400 text-slate-950 text-[10px] font-black disabled:opacity-35 cursor-pointer"
+              >
+                Go
+              </button>
+            </form>
+          )}
           <FullscreenLandscapeButton />
           <span className="px-2 py-0.5 sm:py-1 rounded-full bg-slate-900 border border-white/10 text-[10px] font-bold text-amber-300 tnum">
             Purse ₹{config.purseCr} Cr
