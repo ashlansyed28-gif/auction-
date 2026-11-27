@@ -15,6 +15,15 @@ export type JerseyKitId =
 export type PlayerRole = Role;
 export type PlayerCategory = Category;
 
+export interface AuthenticatedUser {
+  userId: string;
+  email: string;
+  emailMasked: string;
+  username: string;
+  provider: "supabase" | "local";
+  verified: boolean;
+}
+
 export interface JerseyTheme {
   id: JerseyKitId;
   code: string;
@@ -53,7 +62,9 @@ export interface FriendTeam {
 }
 
 export interface ChallengeConfig {
+  roomTitle?: string;
   teamCount: number;
+  membersPerTeam?: 2 | 3 | 4;
   purseCr: number;
   minSquadSize: number;
   maxSquadSize: number;
@@ -80,13 +91,39 @@ export interface TeamScorecard {
 }
 
 export type RoomMode = "LOCAL" | "HOST" | "GUEST";
+export type TeamMemberRole = "CAPTAIN" | "MEMBER" | "SPECTATOR";
 
 export interface ConnectedMember {
   clientId: string;
+  userId?: string;
   friendName: string;
-  kitId: JerseyKitId;
+  emailMasked?: string;
+  kitId: JerseyKitId | null;
+  teamRole: TeamMemberRole;
+  joinedAt?: number;
   isHost: boolean;
   lastSeenAt: number;
+}
+
+export type TeamVoteChoice = "BID" | "PASS";
+
+export interface TeamBidVote {
+  clientId: string;
+  username: string;
+  choice: TeamVoteChoice;
+  lotIdx: number;
+  bidStepCount: number;
+  updatedAt: number;
+}
+
+export interface RoomChatMessage {
+  id: string;
+  senderClientId: string;
+  senderName: string;
+  kitId: JerseyKitId | null;
+  text: string;
+  isSystem?: boolean;
+  ts: number;
 }
 
 export interface RoomAuctionSnapshot {
@@ -97,6 +134,8 @@ export interface RoomAuctionSnapshot {
   config: ChallengeConfig;
   members: ConnectedMember[];
   teams: FriendTeam[];
+  chatMessages: RoomChatMessage[];
+  teamVotes: Record<string, Record<string, TeamBidVote>>;
   lotIdx: number;
   currentBidCr: number | null;
   highestBidderId: string | null;

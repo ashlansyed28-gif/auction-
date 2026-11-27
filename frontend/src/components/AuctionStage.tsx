@@ -6,7 +6,10 @@ import type {
   ConnectedMember,
   FriendTeam,
   RoomAuctionSnapshot,
+  RoomChatMessage,
   RoomMode,
+  TeamBidVote,
+  TeamVoteChoice,
 } from "../types/auction";
 import {
   checkTeamBidEligibility,
@@ -16,10 +19,12 @@ import {
   formatLakhsCrores,
   nextBidIncrementCr,
 } from "../utils/auctionRules";
+import { summarizeTeamVotes } from "../utils/teamRoomHelpers";
 import { soundEngine } from "../utils/soundEngine";
 import { voiceEngine } from "../utils/voiceEngine";
 import { PlayerPortrait } from "./PlayerPortrait";
 import { PlayerRecordsModal } from "./PlayerRecordsModal";
+import { PlayerSoldCard } from "./PlayerSoldCard";
 import { ArenaBackdropSvg } from "./illustrations/ArenaBackdropSvg";
 import { AuctioneerPodiumSvg } from "./illustrations/AuctioneerPodiumSvg";
 import { CricketJerseySvg } from "./illustrations/CricketJerseySvg";
@@ -29,6 +34,7 @@ export interface IncomingRoomCommand {
   seq: number;
   type: "BID" | "PASS";
   teamId: string;
+  clientId?: string;
 }
 
 interface AuctionStageProps {
@@ -38,13 +44,24 @@ interface AuctionStageProps {
   roomMode: RoomMode;
   roomCode: string | null;
   transportMode: "supabase" | "local";
+  myClientId: string;
+  myUsername?: string;
   connectedMembers: ConnectedMember[];
   myTeamId: string | null;
+  teamVotes: Record<string, Record<string, TeamBidVote>>;
+  chatMessages: RoomChatMessage[];
   syncedSnapshot: RoomAuctionSnapshot | null;
   incomingCommand: IncomingRoomCommand | null;
-  onHostPublishState?: (patch: Omit<RoomAuctionSnapshot, "roomCode" | "hostClientId" | "version" | "screen" | "config" | "members" | "updatedAt">) => void;
+  onHostPublishState?: (
+    patch: Omit<
+      RoomAuctionSnapshot,
+      "roomCode" | "hostClientId" | "version" | "screen" | "config" | "members" | "chatMessages" | "teamVotes" | "updatedAt"
+    >,
+  ) => void;
   onGuestBid?: (teamId: string) => void;
   onGuestPass?: (teamId: string) => void;
+  onCastVote?: (teamId: string, choice: TeamVoteChoice, lotIdx: number, bidStepCount: number) => void;
+  onSendChat?: (text: string) => void;
   onFinishChallenge: (finalTeams: FriendTeam[], unsoldCount: number) => void;
   onExitSetup: () => void;
 }
@@ -67,13 +84,19 @@ export function AuctionStage({
   roomMode,
   roomCode,
   transportMode,
+  myClientId,
+  myUsername,
   connectedMembers,
   myTeamId,
+  teamVotes,
+  chatMessages,
   syncedSnapshot,
   incomingCommand,
   onHostPublishState,
   onGuestBid,
   onGuestPass,
+  onCastVote,
+  onSendChat,
   onFinishChallenge,
   onExitSetup,
 }: AuctionStageProps) {
@@ -90,6 +113,10 @@ export function AuctionStage({
   const [isMuted, setIsMuted] = useState(soundEngine.isMuted());
   const [voiceEnabled, setVoiceEnabled] = useState(voiceEngine.isEnabled());
   const [showRecordsModal, setShowRecordsModal] = useState(false);
+  const [showSoldCard, setShowSoldCard] = useState(false);
+  const [soldCardDismissed, setSoldCardDismissed] = useState(false);
+  const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [chatDraft, setChatDraft] = useState("");
   const [copiedCode, setCopiedCode] = useState(false);
 
   const arenaRef = useRef<HTMLDivElement>(null);
@@ -114,6 +141,8 @@ export function AuctionStage({
   const effectiveBidStepCount = isGuest && syncedSnapshot ? syncedSnapshot.bidStepCount ?? 0 : bidStepCount;
   const effectiveResolution = isGuest && syncedSnapshot ? syncedSnapshot.resolution ?? "BIDDING" : resolution;
   const effectiveUnsoldCount = isGuest && syncedSnapshot ? syncedSnapshot.unsoldCount ?? 0 : unsoldCount;
+  const effectiveVotes = isGuest && syncedSnapshot ? syncedSnapshot.teamVotes || {} : teamVotes;
+  const effectiveChat = isGuest && syncedSnapshot ? syncedSnapshot.chatMessages || [] : chatMessages;
 
   const paddleRefs = useMemo(
     () => effectiveTeams.map(() => createRef<SVGGElement>()),
@@ -123,6 +152,28 @@ export function AuctionStage({
   const player = players[effectiveLotIdx] || null;
   const leadingTeam = effectiveTeams.find((t) => t.id === effectiveHighestBidderId) || null;
   const myTeam = myTeamId ? effectiveTeams.find((t) => t.id === myTeamId) || null : null;
+  const myMember = connectedMembers.find((m) => m.clientId === myClientId) || null;
+  const isMyCaptain = roomMode === "LOCAL" || myMember?.teamRole === "CAPTAIN";
+  const myTeamMembers = myTeam
+    ? connectedMembers.filter((m) => m.kitId === myTeam.kit.id)
+    : [];
+  const myTeamCaptain = myTeamMembers.find((m) => m.teamRole === "CAPTAIN") || null;
+
+  // Show Sold Celebration Card shortly after hammer slam
+  useEffect(() => {
+    setSoldCardDismissed(false);
+    setShowSoldCard(false);
+  }, [effectiveLotIdx]);
+
+  useEffect(() => {
+    if (effectiveResolution === "SOLD" && !soldCardDismissed) {
+      const timer = setTimeout(() => setShowSoldCard(true), 620);
+      return () => clearTimeout(timer);
+    }
+    if (effectiveResolution !== "SOLD") {
+      setShowSoldCard(false);
+    }
+  }, [effectiveResolution, soldCardDismissed]);
 
   // Publish state from Host whenever local state updates
   useEffect(() => {
@@ -443,13 +494,19 @@ export function AuctionStage({
     }
   };
 
-  // Process remote guest BID / PASS actions on Host
+  // Process remote guest BID / PASS actions on Host (enforcing single Captain per team)
   useEffect(() => {
     if (roomMode !== "HOST" || !incomingCommand) return;
     if (incomingCommand.seq <= lastProcessedCmdSeq.current) return;
     lastProcessedCmdSeq.current = incomingCommand.seq;
     const targetTeam = teams.find((t) => t.id === incomingCommand.teamId);
     if (!targetTeam) return;
+    if (incomingCommand.clientId) {
+      const sender = connectedMembers.find((m) => m.clientId === incomingCommand.clientId);
+      if (!sender || sender.kitId !== targetTeam.kit.id || sender.teamRole !== "CAPTAIN") {
+        return;
+      }
+    }
     if (incomingCommand.type === "BID") {
       handleBidAsTeam(targetTeam, false);
     } else if (incomingCommand.type === "PASS") {
@@ -604,6 +661,35 @@ export function AuctionStage({
         </div>
 
         <div className="flex items-center gap-2">
+          {roomMode !== "LOCAL" && myUsername && (
+            <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-white/15 text-[11px] font-bold">
+              <span className="text-white">@{myUsername}</span>
+              <span
+                className={
+                  myMember?.teamRole === "CAPTAIN"
+                    ? "text-amber-300 font-black"
+                    : myMember?.teamRole === "MEMBER"
+                    ? "text-sky-300 font-bold"
+                    : "text-slate-400"
+                }
+              >
+                {myMember?.teamRole === "CAPTAIN"
+                  ? "👑 Captain"
+                  : myMember?.teamRole === "MEMBER"
+                  ? "🗳️ Member"
+                  : "👁️ Observe"}
+              </span>
+            </span>
+          )}
+          {roomMode !== "LOCAL" && (
+            <button
+              type="button"
+              onClick={() => setShowChatDrawer((s) => !s)}
+              className="px-2.5 py-1.5 rounded-full bg-slate-900/85 border border-white/15 text-xs font-bold text-slate-200 hover:text-white cursor-pointer"
+            >
+              💬 Chat ({effectiveChat.length})
+            </button>
+          )}
           {roomMode !== "LOCAL" && roomCode && (
             <button
               type="button"
@@ -943,49 +1029,184 @@ export function AuctionStage({
                 </div>
               </div>
 
-              {/* Action Controls (Guest vs Host/Local) */}
+              {/* Action Controls (Squad Vote + Captain Agreement vs Pass & Play) */}
               <div className="space-y-2">
                 {effectiveResolution === "SOLD" || effectiveResolution === "UNSOLD" ? (
-                  !isGuest ? (
-                    <button
-                      type="button"
-                      onClick={advanceNextLot}
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-300 to-yellow-500 text-slate-950 font-black text-sm uppercase tracking-wider cursor-pointer shadow-lg"
-                    >
-                      {effectiveLotIdx + 1 >= players.length ? "View Final Scorecard →" : "Next Player on Block →"}
-                    </button>
-                  ) : (
-                    <div className="rounded-xl bg-slate-900 border border-white/15 px-3 py-3 text-center text-xs font-bold text-slate-300">
-                      Waiting for Host to advance to next lot…
-                    </div>
-                  )
-                ) : isGuest && myTeam ? (
+                  <div className="space-y-1.5">
+                    {effectiveResolution === "SOLD" && leadingTeam && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSoldCardDismissed(false);
+                          setShowSoldCard(true);
+                        }}
+                        className="w-full py-2 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black text-xs uppercase tracking-wider cursor-pointer"
+                      >
+                        🏆 View Player Sold Card
+                      </button>
+                    )}
+                    {!isGuest ? (
+                      <button
+                        type="button"
+                        onClick={advanceNextLot}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-300 to-yellow-500 text-slate-950 font-black text-sm uppercase tracking-wider cursor-pointer shadow-lg"
+                      >
+                        {effectiveLotIdx + 1 >= players.length ? "View Final Scorecard →" : "Next Player on Block →"}
+                      </button>
+                    ) : (
+                      <div className="rounded-xl bg-slate-900 border border-white/15 px-3 py-3 text-center text-xs font-bold text-slate-300">
+                        Waiting for Host to advance to next lot…
+                      </div>
+                    )}
+                  </div>
+                ) : roomMode !== "LOCAL" ? (
                   <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        disabled={!myEligibility?.canBid}
-                        onClick={() => handleBidAsTeam(myTeam)}
-                        className="flex-1 py-3 px-3 rounded-xl bg-gradient-to-r from-amber-300 to-yellow-500 text-slate-950 font-black text-xs sm:text-sm disabled:opacity-45 cursor-pointer shadow-lg shadow-amber-400/20 tnum"
-                      >
-                        {myEligibility?.canBid
-                          ? `BID ${formatLakhsCrores(myEligibility.nextBidCr)} (${
-                              effectiveBidCr === null ? "OPEN" : formatIncrementTag(currentIncrementCr)
-                            })`
-                          : myEligibility?.reason || "PASSED / LOCKED"}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={effectivePassedIds.includes(myTeam.id)}
-                        onClick={() => handlePassTurn(myTeam)}
-                        className="px-4 py-3 rounded-xl bg-slate-800 border border-white/15 text-slate-200 font-extrabold text-xs hover:bg-slate-700 disabled:opacity-45 cursor-pointer"
-                      >
-                        PASS
-                      </button>
-                    </div>
-                    <div className="text-[11px] text-center text-slate-400">
-                      Connected as <strong style={{ color: myTeam.kit.accent }}>{myTeam.name}</strong>
-                    </div>
+                    {myTeam ? (
+                      (() => {
+                        const voteSummary = summarizeTeamVotes(
+                          effectiveVotes,
+                          myTeam.id,
+                          effectiveLotIdx,
+                          effectiveBidStepCount,
+                        );
+                        const myCurrentVote = voteSummary.voters.find((v) => v.clientId === myClientId)?.choice;
+                        const canVote = Boolean(myEligibility?.canBid) && !effectivePassedIds.includes(myTeam.id);
+
+                        return (
+                          <div className="space-y-2">
+                            {/* Live Squad Vote Huddle Bar */}
+                            <div className="rounded-xl bg-slate-900/90 border border-white/10 px-2.5 py-1.5 text-[10px]">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-black uppercase tracking-wider" style={{ color: myTeam.kit.accent }}>
+                                  {myTeam.kit.code} Squad Votes ({myTeamMembers.length})
+                                </span>
+                                <span className="font-bold text-slate-300 tnum">
+                                  👍 {voteSummary.bidCount} BID · 👎 {voteSummary.passCount} PASS
+                                </span>
+                              </div>
+                              {voteSummary.voters.length > 0 && (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {voteSummary.voters.map((v) => (
+                                    <span
+                                      key={v.clientId}
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                                        v.choice === "BID"
+                                          ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-300"
+                                          : "bg-rose-500/15 border-rose-400/40 text-rose-300"
+                                      }`}
+                                    >
+                                      {v.choice === "BID" ? "👍" : "👎"} @{v.username}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {isMyCaptain ? (
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  disabled={!myEligibility?.canBid}
+                                  onClick={() => handleBidAsTeam(myTeam)}
+                                  className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-300 to-yellow-500 text-slate-950 font-black text-xs sm:text-sm disabled:opacity-45 cursor-pointer shadow-lg shadow-amber-400/20 tnum"
+                                >
+                                  {myEligibility?.canBid
+                                    ? `👑 AGREE & BID ${formatLakhsCrores(myEligibility.nextBidCr)}`
+                                    : myEligibility?.reason || "PASSED / LOCKED"}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={effectivePassedIds.includes(myTeam.id)}
+                                  onClick={() => handlePassTurn(myTeam)}
+                                  className="px-3.5 py-2.5 rounded-xl bg-slate-800 border border-white/15 text-slate-200 font-extrabold text-xs hover:bg-slate-700 disabled:opacity-45 cursor-pointer"
+                                >
+                                  PASS
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-1.5">
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={!canVote}
+                                    onClick={() =>
+                                      onCastVote?.(myTeam.id, "BID", effectiveLotIdx, effectiveBidStepCount)
+                                    }
+                                    className={`flex-1 py-2.5 px-3 rounded-xl font-black text-xs border transition cursor-pointer disabled:opacity-45 tnum ${
+                                      myCurrentVote === "BID"
+                                        ? "bg-emerald-500 text-slate-950 border-emerald-300 shadow-lg"
+                                        : "bg-emerald-500/15 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/25"
+                                    }`}
+                                  >
+                                    {myCurrentVote === "BID" ? "✓ VOTED BID" : "👍 VOTE BID"}{" "}
+                                    {myEligibility?.canBid ? formatLakhsCrores(myEligibility.nextBidCr) : ""}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={effectivePassedIds.includes(myTeam.id)}
+                                    onClick={() =>
+                                      onCastVote?.(myTeam.id, "PASS", effectiveLotIdx, effectiveBidStepCount)
+                                    }
+                                    className={`px-3.5 py-2.5 rounded-xl font-extrabold text-xs border transition cursor-pointer disabled:opacity-45 ${
+                                      myCurrentVote === "PASS"
+                                        ? "bg-rose-500 text-white border-rose-300"
+                                        : "bg-slate-800 text-slate-200 border-white/15 hover:bg-slate-700"
+                                    }`}
+                                  >
+                                    👎 VOTE PASS
+                                  </button>
+                                </div>
+                                <div className="text-[10px] text-center text-slate-400">
+                                  Member vote sent • Single Captain{" "}
+                                  <strong className="text-amber-300">
+                                    @{myTeamCaptain?.friendName || "Captain"}
+                                  </strong>{" "}
+                                  must agree to lock bid
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="rounded-xl bg-slate-900 border border-white/15 px-3 py-2.5 text-center text-xs font-bold text-slate-300">
+                        👁️ Observing Room as Spectator
+                      </div>
+                    )}
+
+                    {/* Host Auctioneer Gavel Controls */}
+                    {roomMode === "HOST" && (
+                      <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-white/10">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Auctioneer:
+                        </span>
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            disabled={!effectiveHighestBidderId}
+                            onClick={handleFinalCall}
+                            className="px-2.5 py-1 rounded-lg bg-rose-600/80 text-white text-[11px] font-extrabold disabled:opacity-35 cursor-pointer"
+                          >
+                            CALL
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!effectiveHighestBidderId}
+                            onClick={handleSold}
+                            className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-black disabled:opacity-35 cursor-pointer"
+                          >
+                            SOLD
+                          </button>
+                          <button
+                            type="button"
+                            onClick={advanceNextLot}
+                            className="px-2.5 py-1 rounded-lg bg-slate-700 text-slate-100 text-[11px] font-bold cursor-pointer"
+                          >
+                            SKIP
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -1076,6 +1297,84 @@ export function AuctionStage({
           </div>
         )}
       </footer>
+
+      {/* Room Chat Drawer (Stage) */}
+      {showChatDrawer && roomMode !== "LOCAL" && (
+        <div className="fixed bottom-24 right-4 z-40 w-80 max-w-[92vw] rounded-2xl bg-slate-950/95 border border-amber-400/40 shadow-2xl overflow-hidden backdrop-blur-xl">
+          <div className="px-3.5 py-2 bg-slate-900 border-b border-white/10 flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-amber-300">Room Chat</span>
+            <button
+              type="button"
+              onClick={() => setShowChatDrawer(false)}
+              className="text-xs text-slate-400 hover:text-white cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="h-52 overflow-y-auto p-3 space-y-1.5 text-xs">
+            {effectiveChat.length === 0 ? (
+              <div className="text-slate-500 text-[11px]">No messages yet…</div>
+            ) : (
+              effectiveChat.map((m) => (
+                <div key={m.id} className="break-words">
+                  {m.isSystem ? (
+                    <span className="text-[11px] text-emerald-300 font-semibold">★ {m.text}</span>
+                  ) : (
+                    <>
+                      <span className="font-bold text-amber-300">@{m.senderName}: </span>
+                      <span className="text-slate-100">{m.text}</span>
+                    </>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const clean = chatDraft.trim();
+              if (!clean) return;
+              onSendChat?.(clean.slice(0, 140));
+              setChatDraft("");
+            }}
+            className="p-2 border-t border-white/10 flex gap-1.5"
+          >
+            <input
+              type="text"
+              maxLength={140}
+              value={chatDraft}
+              onChange={(e) => setChatDraft(e.target.value)}
+              placeholder="Message room..."
+              className="flex-1 rounded-lg bg-slate-900 border border-white/10 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"
+            />
+            <button
+              type="submit"
+              className="px-3 py-1.5 rounded-lg bg-amber-400 text-slate-950 text-[11px] font-black cursor-pointer"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      )}
+
+      {showSoldCard && effectiveResolution === "SOLD" && player && leadingTeam && (
+        <PlayerSoldCard
+          player={player}
+          team={leadingTeam}
+          soldPriceCr={displayedBidCr}
+          lotNumber={effectiveLotIdx + 1}
+          bidCount={effectiveBidStepCount}
+          maxSquadSize={config.maxSquadSize}
+          teamMembers={connectedMembers.filter((m) => m.kitId === leadingTeam.kit.id)}
+          isGuest={isGuest}
+          isLastLot={effectiveLotIdx + 1 >= players.length}
+          onNextLot={advanceNextLot}
+          onDismiss={() => {
+            setSoldCardDismissed(true);
+            setShowSoldCard(false);
+          }}
+        />
+      )}
 
       {showRecordsModal && player && (
         <PlayerRecordsModal player={player} onClose={() => setShowRecordsModal(false)} />

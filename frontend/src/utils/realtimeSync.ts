@@ -1,12 +1,41 @@
-import type { JerseyKitId, RoomAuctionSnapshot } from "../types/auction";
+import type {
+  JerseyKitId,
+  RoomAuctionSnapshot,
+  RoomChatMessage,
+  TeamVoteChoice,
+} from "../types/auction";
 
 export type RoomWireMessage =
   | { type: "STATE_SYNC"; snapshot: RoomAuctionSnapshot; senderId: string }
-  | { type: "JOIN_REQUEST"; clientId: string; friendName: string; kitId: JerseyKitId }
+  | {
+      type: "JOIN_REQUEST";
+      clientId: string;
+      userId?: string;
+      friendName: string;
+      emailMasked?: string;
+      kitId: JerseyKitId | null;
+    }
+  | { type: "SWITCH_TEAM"; clientId: string; kitId: JerseyKitId | null }
+  | {
+      type: "PROMOTE_CAPTAIN";
+      requesterClientId: string;
+      kitId: JerseyKitId;
+      targetClientId: string;
+    }
+  | { type: "ROOM_CHAT"; message: RoomChatMessage }
+  | {
+      type: "TEAM_VOTE";
+      clientId: string;
+      username: string;
+      teamId: string;
+      choice: TeamVoteChoice;
+      lotIdx: number;
+      bidStepCount: number;
+    }
   | { type: "REQUEST_SYNC"; clientId: string }
   | { type: "REMOTE_BID"; clientId: string; teamId: string }
   | { type: "REMOTE_PASS"; clientId: string; teamId: string }
-  | { type: "PING"; clientId: string; kitId?: JerseyKitId; ts: number };
+  | { type: "PING"; clientId: string; kitId?: JerseyKitId | null; ts: number };
 
 export interface RealtimeRoomTransport {
   readonly mode: "supabase" | "local";

@@ -12,6 +12,13 @@ import {
   nextBidIncrementCr,
 } from "../src/utils/auctionRules.ts";
 import { createRealtimeTransport, normalizeRoomCode } from "../src/utils/realtimeSync.ts";
+import {
+  assignMemberToTeam,
+  maskEmail,
+  summarizeTeamVotes,
+  transferTeamCaptain,
+  validateSecureUsername,
+} from "../src/utils/teamRoomHelpers.ts";
 import { players as rosterPlayers } from "../src/data/roster.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -152,4 +159,69 @@ test("room code generator, normalization, and local realtime transport work clea
   t1.destroy();
   t2.destroy();
   assert.ok(Array.isArray(received));
+});
+
+test("secure username validation, email masking, 2-4 member cap, single captain, and squad vote summary", () => {
+  assert.equal(validateSecureUsername("TA_Kokab99").ok, true);
+  assert.equal(validateSecureUsername("ab").ok, false);
+  assert.equal(validateSecureUsername("<script>").ok, false);
+  assert.equal(maskEmail("ashlan@gmail.com"), "as***@gmail.com");
+
+  let members = [];
+  const r1 = assignMemberToTeam(
+    members,
+    { clientId: "c1", friendName: "CaptainOne", isHost: true, lastSeenAt: 1 },
+    "csk",
+    3,
+  );
+  assert.equal(r1.ok, true);
+  members = r1.members;
+  assert.equal(members[0].teamRole, "CAPTAIN");
+
+  const r2 = assignMemberToTeam(
+    members,
+    { clientId: "c2", friendName: "MemberTwo", isHost: false, lastSeenAt: 2 },
+    "csk",
+    3,
+  );
+  assert.equal(r2.ok, true);
+  members = r2.members;
+  assert.equal(members.find((m) => m.clientId === "c2")?.teamRole, "MEMBER");
+
+  const r3 = assignMemberToTeam(
+    members,
+    { clientId: "c3", friendName: "MemberThree", isHost: false, lastSeenAt: 3 },
+    "csk",
+    3,
+  );
+  assert.equal(r3.ok, true);
+  members = r3.members;
+
+  // 4th member blocked when membersPerTeam = 3
+  const r4 = assignMemberToTeam(
+    members,
+    { clientId: "c4", friendName: "OverflowFour", isHost: false, lastSeenAt: 4 },
+    "csk",
+    3,
+  );
+  assert.equal(r4.ok, false);
+
+  // Transfer single captaincy to c2
+  members = transferTeamCaptain(members, "csk", "c2");
+  assert.equal(members.filter((m) => m.kitId === "csk" && m.teamRole === "CAPTAIN").length, 1);
+  assert.equal(members.find((m) => m.clientId === "c2")?.teamRole, "CAPTAIN");
+  assert.equal(members.find((m) => m.clientId === "c1")?.teamRole, "MEMBER");
+
+  // Squad vote summary isolates current lot & bidStepCount
+  const votes = {
+    "team-csk": {
+      c1: { clientId: "c1", username: "CaptainOne", choice: "BID", lotIdx: 2, bidStepCount: 3, updatedAt: 10 },
+      c3: { clientId: "c3", username: "MemberThree", choice: "PASS", lotIdx: 2, bidStepCount: 3, updatedAt: 11 },
+      stale: { clientId: "stale", username: "Old", choice: "BID", lotIdx: 2, bidStepCount: 1, updatedAt: 5 },
+    },
+  };
+  const summary = summarizeTeamVotes(votes, "team-csk", 2, 3);
+  assert.equal(summary.bidCount, 1);
+  assert.equal(summary.passCount, 1);
+  assert.equal(summary.voters.length, 2);
 });
