@@ -5,6 +5,8 @@
   body,
   #root {
     min-height: 100%;
+    min-height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -15,6 +17,9 @@
       #070b16;
     color: #f8fafc;
     overflow-x: hidden;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
@@ -32,6 +37,32 @@
   will-change: transform;
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Compact spacing for phones & small tablets in Landscape orientation */
+@media (orientation: landscape) and (max-height: 540px) {
+  .landscape-compact-stage {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+  }
+  .landscape-compact-podium {
+    transform: scale(0.82);
+    transform-origin: center bottom;
+  }
+  .landscape-compact-hud {
+    padding: 0.55rem 0.75rem;
+  }
+  .landscape-compact-arena-banner {
+    height: 4.5rem;
+  }
+}
+
 @keyframes liveBlink {
   0%, 100% {
     opacity: 1;
@@ -45,6 +76,19 @@
 
 .live-dot {
   animation: liveBlink 1.2s ease-in-out infinite;
+}
+
+@keyframes rotateDeviceHint {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  45%, 65% {
+    transform: rotate(-90deg);
+  }
+}
+
+.rotate-hint-anim {
+  animation: rotateDeviceHint 2.4s ease-in-out infinite;
 }
 
 @keyframes flagWave {

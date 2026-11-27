@@ -97,8 +97,8 @@ export function EmailAuthPanel({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md rounded-2xl bg-slate-950/90 border border-amber-400/35 shadow-2xl p-6 space-y-5 backdrop-blur-xl">
+    <div className="min-h-[100dvh] flex items-center justify-center px-4 py-4 sm:py-8">
+      <div className="w-full max-w-md sm:max-w-lg max-h-[95dvh] overflow-y-auto rounded-2xl bg-slate-950/90 border border-amber-400/35 shadow-2xl p-4 sm:p-6 space-y-4 backdrop-blur-xl">
         <div className="text-center space-y-1.5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/35 text-emerald-300 text-[11px] font-extrabold uppercase tracking-widest">
             🔒 Verified Player Access

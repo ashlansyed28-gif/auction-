@@ -7,7 +7,9 @@ import type {
   RoomChatMessage,
 } from "../types/auction";
 import { DEFAULT_TEAM_NAMES, JERSEY_THEMES } from "../utils/auctionRules";
+import { isTouchOrMobileViewport, requestLandscapeFullscreen } from "../utils/orientation";
 import { voiceEngine } from "../utils/voiceEngine";
+import { FullscreenLandscapeButton } from "./LandscapeGuard";
 import { CricketJerseySvg } from "./illustrations/CricketJerseySvg";
 
 interface CustomRoomLobbyProps {
@@ -127,30 +129,31 @@ export function CustomRoomLobby({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-white/10 text-[11px] font-bold text-amber-300 tnum">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <FullscreenLandscapeButton />
+          <span className="px-2 py-1 rounded-full bg-slate-900 border border-white/10 text-[10px] sm:text-[11px] font-bold text-amber-300 tnum">
             Purse ₹{config.purseCr} Cr
           </span>
           <span
-            className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+            className={`px-2 py-1 rounded-full text-[10px] sm:text-[11px] font-bold border ${
               transportMode === "supabase"
                 ? "bg-emerald-500/15 border-emerald-400/35 text-emerald-300"
                 : "bg-sky-500/15 border-sky-400/35 text-sky-300"
             }`}
           >
-            {transportMode === "supabase" ? "● Supabase Live" : "● Local Sync"}
+            {transportMode === "supabase" ? "● Live" : "● Local"}
           </span>
           <button
             type="button"
             onClick={onLeaveRoom}
-            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-white/15 text-xs font-bold text-slate-200 hover:bg-slate-800 cursor-pointer"
+            className="px-2.5 sm:px-3 py-1 rounded-lg bg-slate-900 border border-white/15 text-[11px] sm:text-xs font-bold text-slate-200 hover:bg-slate-800 cursor-pointer"
           >
-            Leave Room
+            Leave
           </button>
           <button
             type="button"
             onClick={onSignOut}
-            className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-[11px] font-bold text-slate-400 hover:text-white cursor-pointer"
+            className="px-2 py-1 rounded-lg bg-slate-900 border border-white/10 text-[10px] sm:text-[11px] font-bold text-slate-400 hover:text-white cursor-pointer"
           >
             Sign Out
           </button>
@@ -158,17 +161,17 @@ export function CustomRoomLobby({
       </header>
 
       {joinStatus && (
-        <div className="max-w-7xl w-full mx-auto px-4 pt-3">
-          <div className="rounded-xl bg-sky-500/15 border border-sky-400/35 px-3.5 py-2 text-xs font-semibold text-sky-200">
+        <div className="max-w-7xl w-full mx-auto px-3 pt-2">
+          <div className="rounded-xl bg-sky-500/15 border border-sky-400/35 px-3 py-1.5 text-xs font-semibold text-sky-200">
             {joinStatus}
           </div>
         </div>
       )}
 
-      {/* Main Custom Room Body (Template Match: Left Info+Chat, Right Team Roster Grid) */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 items-stretch">
+      {/* Main Custom Room Body (Template Match: Side-by-Side even on Mobile & Tablet Landscape) */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-3 lg:p-4 grid grid-cols-1 sm:grid-cols-[245px_1fr] md:grid-cols-[290px_1fr] lg:grid-cols-[340px_1fr] gap-2.5 sm:gap-3 lg:gap-4 items-stretch">
         {/* LEFT COLUMN: Room ID + Arena Card + Live Room Chat */}
-        <aside className="flex flex-col gap-3">
+        <aside className="flex flex-col gap-2.5 min-w-0">
           {/* Room ID & Arena Card */}
           <section className="rounded-2xl bg-slate-900/90 border border-white/15 overflow-hidden shadow-2xl">
             {/* Room ID Header */}
@@ -217,7 +220,7 @@ export function CustomRoomLobby({
             </div>
 
             {/* Arena Preview Thumbnail (Inspired by template's BERMUDA banner) */}
-            <div className="relative h-28 bg-gradient-to-br from-sky-900 via-indigo-950 to-slate-950 overflow-hidden border-b border-white/10">
+            <div className="relative h-24 sm:h-24 lg:h-28 landscape-compact-arena-banner bg-gradient-to-br from-sky-900 via-indigo-950 to-slate-950 overflow-hidden border-b border-white/10">
               <div
                 className="absolute inset-0 opacity-40"
                 style={{
@@ -499,7 +502,7 @@ export function CustomRoomLobby({
             </div>
 
             {/* 2-Column Grid of Franchise Blocks (Exact template layout with Team Name in left column!) */}
-            <div className="p-3 sm:p-4 grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start">
+            <div className="p-2.5 sm:p-3 lg:p-4 grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 flex-1 content-start max-h-[68dvh] sm:max-h-none overflow-y-auto">
               {activeThemes.map((kit, idx) => {
                 const teamName = safeTeamNames[idx] || kit.franchiseName;
                 const teamMembers = safeMembers.filter((m) => m.kitId === kit.id);
@@ -510,7 +513,7 @@ export function CustomRoomLobby({
                 return (
                   <div
                     key={kit.id}
-                    className={`grid grid-cols-[106px_1fr] rounded-xl overflow-hidden border transition ${
+                    className={`grid grid-cols-[88px_1fr] sm:grid-cols-[98px_1fr] lg:grid-cols-[106px_1fr] rounded-xl overflow-hidden border transition ${
                       iAmOnThisTeam
                         ? "border-amber-400 shadow-lg shadow-amber-400/15"
                         : "border-white/15 bg-slate-950/75"
@@ -655,6 +658,9 @@ export function CustomRoomLobby({
                     type="button"
                     onClick={() => {
                       voiceEngine.unlock();
+                      if (isTouchOrMobileViewport()) {
+                        void requestLandscapeFullscreen();
+                      }
                       onStartMatch(config);
                     }}
                     className="px-10 py-3 rounded-xl bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 text-slate-950 font-black text-sm uppercase tracking-widest shadow-xl shadow-amber-400/25 hover:brightness-105 cursor-pointer"

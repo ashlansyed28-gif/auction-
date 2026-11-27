@@ -1,0 +1,10 @@
+{
+  "name": "Hammer Time — T20 Cricket Auction",
+  "short_name": "Hammer Time",
+  "description": "Free-to-play T20 Cricket Auction Custom Room & Broadcast Stage",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#070B16",
+  "theme_color": "#070B16"
+}

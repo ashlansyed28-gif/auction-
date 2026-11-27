@@ -15,14 +15,14 @@ export function PlayerRecordsModal({ player, onClose }: PlayerRecordsModalProps)
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-2.5 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label={`${player.name} career records and stats`}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-2xl bg-slate-900 border border-amber-400/45 shadow-2xl overflow-hidden"
+        className="w-full max-w-lg max-h-[94dvh] overflow-y-auto rounded-2xl bg-slate-900 border border-amber-400/45 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}

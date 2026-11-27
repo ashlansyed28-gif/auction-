@@ -1,6 +1,7 @@
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { LandscapeGuard } from "./components/LandscapeGuard";
 import "./index.css";
 
 interface ErrorBoundaryState {
@@ -58,7 +59,9 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryS
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AppErrorBoundary>
-      <App />
+      <LandscapeGuard>
+        <App />
+      </LandscapeGuard>
     </AppErrorBoundary>
   </StrictMode>,
 );

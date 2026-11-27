@@ -33,9 +33,9 @@ export function PlayerSoldCard({
   const captain = teamMembers.find((m) => m.teamRole === "CAPTAIN");
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4">
       <div
-        className="relative w-full max-w-2xl rounded-3xl bg-slate-950 border-2 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-2xl max-h-[94dvh] overflow-y-auto rounded-3xl bg-slate-950 border-2 shadow-2xl"
         style={{
           borderColor: team.kit.primary,
           boxShadow: `0 0 60px ${team.kit.glow}`,

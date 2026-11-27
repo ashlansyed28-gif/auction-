@@ -22,6 +22,7 @@ import {
 import { summarizeTeamVotes } from "../utils/teamRoomHelpers";
 import { soundEngine } from "../utils/soundEngine";
 import { voiceEngine } from "../utils/voiceEngine";
+import { FullscreenLandscapeButton } from "./LandscapeGuard";
 import { PlayerPortrait } from "./PlayerPortrait";
 import { PlayerRecordsModal } from "./PlayerRecordsModal";
 import { PlayerSoldCard } from "./PlayerSoldCard";
@@ -623,7 +624,7 @@ export function AuctionStage({
   return (
     <div className="min-h-screen flex flex-col justify-between bg-[#070B16] text-white">
       {/* Top Broadcast Header with Room Code & Connected Teams */}
-      <header className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3 bg-gradient-to-r from-slate-950/95 via-rose-950/80 to-slate-950/95 border-b border-amber-400/25 shadow-lg">
+      <header className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-slate-950/95 via-rose-950/80 to-slate-950/95 border-b border-amber-400/25 shadow-lg">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -699,6 +700,7 @@ export function AuctionStage({
               {copiedCode ? "Copied!" : roomCode}
             </button>
           )}
+          <FullscreenLandscapeButton />
           <button
             type="button"
             onClick={toggleVoice}
@@ -733,11 +735,11 @@ export function AuctionStage({
         </div>
       </header>
 
-      {/* Purse Strip for All Friend Teams */}
-      <div className="max-w-6xl w-full mx-auto px-4 pt-3">
+      {/* Purse Strip for All Friend Teams (Single-row scroll on mobile landscape, grid on desktop) */}
+      <div className="max-w-6xl w-full mx-auto px-2.5 sm:px-4 pt-2">
         <div
-          className={`grid gap-2 ${
-            effectiveTeams.length > 4 ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-4"
+          className={`flex overflow-x-auto no-scrollbar gap-2 pb-1 lg:grid lg:overflow-visible lg:pb-0 ${
+            effectiveTeams.length > 4 ? "lg:grid-cols-5" : "lg:grid-cols-4"
           }`}
         >
           {effectiveTeams.map((t) => {
@@ -749,7 +751,7 @@ export function AuctionStage({
             return (
               <div
                 key={t.id}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition ${
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border transition min-w-[146px] sm:min-w-[160px] lg:min-w-0 shrink-0 ${
                   isLeader
                     ? "bg-amber-400/15 border-amber-400 shadow-lg shadow-amber-400/15"
                     : isTurn
@@ -790,10 +792,10 @@ export function AuctionStage({
       </div>
 
       {/* Arena Stage */}
-      <main className="max-w-6xl w-full mx-auto px-4 py-3 flex-1 flex items-center">
+      <main className="max-w-6xl w-full mx-auto px-2.5 sm:px-4 py-1.5 sm:py-2.5 flex-1 flex items-center">
         <section
           ref={arenaRef}
-          className="relative w-full rounded-2xl border border-amber-400/25 overflow-hidden shadow-2xl arena-perspective px-4 py-5 sm:px-6 sm:py-6"
+          className="relative w-full rounded-2xl border border-amber-400/25 overflow-hidden shadow-2xl arena-perspective px-3 py-3 sm:px-6 sm:py-5 landscape-compact-stage"
         >
           <ArenaBackdropSvg
             spotlightColor={activeSpotlight}
@@ -811,7 +813,7 @@ export function AuctionStage({
           />
 
           <div ref={cameraRigRef} className="relative z-10 camera-rig-3d">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-end">
               {effectiveTeams[0] && (
                 <div
                   className={`rounded-2xl p-2 transition ${
@@ -830,7 +832,7 @@ export function AuctionStage({
                 </div>
               )}
 
-              <div className="flex flex-col items-center text-center">
+              <div className="flex flex-col items-center text-center landscape-compact-podium">
                 <AuctioneerPodiumSvg
                   gavelRef={gavelRef}
                   isFinalCall={effectiveResolution === "FINAL_CALL"}
@@ -919,14 +921,14 @@ export function AuctionStage({
       </main>
 
       {/* Bottom Broadcast HUD */}
-      <footer className="max-w-6xl w-full mx-auto px-4 pb-4">
+      <footer className="max-w-6xl w-full mx-auto px-2.5 sm:px-4 pb-2.5 sm:pb-4">
         {player && (
-          <div className="rounded-2xl bg-slate-950/90 border border-white/15 border-t-2 border-t-amber-400 p-4 backdrop-blur-xl shadow-2xl">
-            <div className="grid grid-cols-1 lg:grid-cols-[auto_1.65fr_0.85fr_1.15fr_1.45fr] gap-4 items-center">
+          <div className="rounded-2xl bg-slate-950/90 border border-white/15 border-t-2 border-t-amber-400 p-3 sm:p-4 landscape-compact-hud backdrop-blur-xl shadow-2xl">
+            <div className="grid grid-cols-1 md:grid-cols-[auto_1.45fr_0.75fr_1.05fr_1.45fr] gap-2.5 sm:gap-3 lg:gap-4 items-center">
               {/* Player Portrait (/players/<slug>.jpg with object-cover object-top + fallback) */}
-              <div className="flex items-center gap-3 lg:block min-w-0">
-                <PlayerPortrait player={player} className="w-16 h-20" />
-                <div className="lg:hidden flex-1 min-w-0">
+              <div className="flex items-center gap-3 md:block min-w-0">
+                <PlayerPortrait player={player} className="w-14 h-16 sm:w-16 sm:h-20" />
+                <div className="md:hidden flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-base font-black text-white truncate">{player.name}</span>
                     <span className="px-1.5 py-0.5 rounded bg-amber-400/15 border border-amber-400/35 text-[9px] font-black text-amber-300 shrink-0">
@@ -938,7 +940,7 @@ export function AuctionStage({
                 <button
                   type="button"
                   onClick={() => setShowRecordsModal(true)}
-                  className="lg:hidden px-3 py-1.5 rounded-lg bg-slate-800 border border-amber-400/40 text-[11px] font-extrabold text-amber-300 shrink-0 cursor-pointer"
+                  className="md:hidden px-3 py-1.5 rounded-lg bg-slate-800 border border-amber-400/40 text-[11px] font-extrabold text-amber-300 shrink-0 cursor-pointer"
                 >
                   Records &amp; Stats
                 </button>
@@ -946,9 +948,9 @@ export function AuctionStage({
 
               {/* Player Name, Core Tags, Highest/Best & Career Records */}
               <div className="min-w-0">
-                <div className="hidden lg:flex items-center justify-between gap-2 mb-1">
+                <div className="hidden md:flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xl font-black text-white tracking-wide truncate">{player.name}</span>
+                    <span className="text-base lg:text-xl font-black text-white tracking-wide truncate">{player.name}</span>
                     <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/40 text-[10px] font-extrabold text-amber-300 shrink-0">
                       {player.category}
                     </span>
@@ -958,11 +960,11 @@ export function AuctionStage({
                     onClick={() => setShowRecordsModal(true)}
                     className="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-amber-400/45 text-[11px] font-extrabold text-amber-300 hover:bg-amber-400/15 shrink-0 cursor-pointer"
                   >
-                    📊 Records &amp; Stats
+                    📊 Records
                   </button>
                 </div>
 
-                <div className="hidden lg:flex items-center gap-2 text-[11px] text-slate-300 mb-2 min-w-0">
+                <div className="hidden md:flex items-center gap-2 text-[11px] text-slate-300 mb-2 min-w-0">
                   <span className="line-clamp-1 min-w-0 flex-1">{player.careerRecords}</span>
                 </div>
 
