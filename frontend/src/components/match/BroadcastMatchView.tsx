@@ -28,6 +28,12 @@ import {
   StadiumCanvas,
   type DeliveryAnimationState,
 } from "./StadiumCanvas";
+import {
+  createIdleResetState,
+  getAutoLaunchSpec,
+  getNextBowlReleaseTarget,
+  type PhaseGate,
+} from "./deliveryStateMachine";
 
 export type MatchControlMode = "VS_BOT" | "PASS_PLAY" | "WATCH_AI" | "ONLINE_FRIEND";
 
@@ -132,7 +138,7 @@ export function BroadcastMatchView({
   const [battingCameraMode, setBattingCameraMode] = useState<"BATSMAN_END" | "BOWLER_END">("BATSMAN_END");
 
   const [meterPos, setMeterPos] = useState(0.5);
-  const [phaseGate, setPhaseGate] = useState<"READY" | "BOWL_METER" | "BAT_TIMING" | "ANIMATING">("READY");
+  const [phaseGate, setPhaseGate] = useState<PhaseGate>("READY");
   const [lockedBowl, setLockedBowl] = useState<{
     length: BowlingLength;
     line: BowlingLine;
@@ -142,6 +148,9 @@ export function BroadcastMatchView({
   const [lastSpeedKmh, setLastSpeedKmh] = useState<number | null>(null);
   const [lastSixDistM, setLastSixDistM] = useState<number | null>(null);
   const [stinger, setStinger] = useState<StingerBanner | null>(null);
+  const [autoLaunchLabel, setAutoLaunchLabel] = useState<string | null>(null);
+  const [autoLaunchSec, setAutoLaunchSec] = useState<number | null>(null);
+  const [directThrowNotice, setDirectThrowNotice] = useState(false);
   const [isMuted, setIsMuted] = useState(soundEngine.isMuted());
   const [scorebugExpanded, setScorebugExpanded] = useState(true);
   const [drawer, setDrawer] = useState<"NONE" | "MENU" | "SCORECARD" | "COMMENTARY" | "POINTS">("NONE");
@@ -156,6 +165,21 @@ export function BroadcastMatchView({
   const stingerSeq = useRef(1);
   const prevStrikerIdRef = useRef<number | null>(null);
   const lastRemoteBallCountRef = useRef<number>(0);
+  const animTimeoutRef = useRef<number | null>(null);
+  const throwTimeoutRef = useRef<number | null>(null);
+
+  const clearDeliveryAnimTimers = useCallback(() => {
+    if (animTimeoutRef.current !== null) {
+      window.clearTimeout(animTimeoutRef.current);
+      animTimeoutRef.current = null;
+    }
+    if (throwTimeoutRef.current !== null) {
+      window.clearTimeout(throwTimeoutRef.current);
+      throwTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearDeliveryAnimTimers, [clearDeliveryAnimTimers]);
 
   const showStinger = useCallback(
     (kind: StingerBanner["kind"], title: string, subtitle: string) => {
@@ -182,10 +206,12 @@ export function BroadcastMatchView({
       const curInn = getActiveInnings(initialMatch) || initialMatch.innings2 || initialMatch.innings1;
       const latest = curInn.ballLog[curInn.ballLog.length - 1];
       if (latest) {
+        clearDeliveryAnimTimers();
         soundEngine.playDeliveryAudio(latest);
         setLastSpeedKmh(latest.ballSpeedKmh);
         setLastSixDistM(latest.runs === 6 ? latest.shotDistanceM ?? 92 : null);
         setTimingCallout(latest.timingGrade);
+        setDirectThrowNotice(false);
         setPhaseGate("ANIMATING");
         setAnimation({
           key: Date.now(),
@@ -195,12 +221,22 @@ export function BroadcastMatchView({
           activeLine: latest.line,
           speedPreviewKmh: latest.ballSpeedKmh,
         });
-        setTimeout(() => {
-          setPhaseGate("READY");
-        }, 1100);
+        if (latest.runs === 1 || latest.runs === 2) {
+          throwTimeoutRef.current = window.setTimeout(() => {
+            setDirectThrowNotice(true);
+          }, 920);
+        }
+        animTimeoutRef.current = window.setTimeout(() => {
+          const reset = createIdleResetState(latest.length, latest.line);
+          setTimingCallout(reset.timingCallout);
+          setDirectThrowNotice(reset.directThrowNotice);
+          setMeterPos(reset.meterPos);
+          setAnimation(reset.animation);
+          setPhaseGate(reset.phaseGate);
+        }, 1520);
       }
     }
-  }, [controlMode, initialMatch]);
+  }, [controlMode, initialMatch, clearDeliveryAnimTimers]);
 
   const active = getActiveInnings(match);
   const battingLineup = active ? getLineupById(match, active.battingTeamId) : match.teamA;
@@ -293,9 +329,11 @@ export function BroadcastMatchView({
         stepOut,
       });
 
+      clearDeliveryAnimTimers();
       setTimingCallout(timingGrade);
       setLastSpeedKmh(outcome.ballSpeedKmh);
       setLastSixDistM(outcome.runs === 6 ? outcome.shotDistanceM ?? 92 : null);
+      setDirectThrowNotice(false);
       setPhaseGate("ANIMATING");
       setAnimation({
         key: Date.now(),
@@ -307,6 +345,12 @@ export function BroadcastMatchView({
       });
 
       soundEngine.playDeliveryAudio(outcome);
+
+      if (outcome.runs === 1 || outcome.runs === 2) {
+        throwTimeoutRef.current = window.setTimeout(() => {
+          setDirectThrowNotice(true);
+        }, 920);
+      }
 
       if (outcome.isWicket) {
         showStinger(
@@ -326,22 +370,28 @@ export function BroadcastMatchView({
         showStinger("FREE_HIT", "NO BALL • FREE HIT!", "Next delivery is a Free Hit");
       }
 
-      setTimeout(() => {
+      animTimeoutRef.current = window.setTimeout(() => {
+        const reset = createIdleResetState(length, line);
         setMatch(nextM);
         onMatchStateChange?.(nextM);
-        setPhaseGate("READY");
-        setLockedBowl(null);
-      }, 1150);
+        setLockedBowl(reset.lockedBowl);
+        setTimingCallout(reset.timingCallout);
+        setDirectThrowNotice(reset.directThrowNotice);
+        setMeterPos(reset.meterPos);
+        setAnimation(reset.animation);
+        setPhaseGate(reset.phaseGate);
+      }, 1520);
     },
-    [match, onMatchStateChange, showStinger],
+    [match, onMatchStateChange, showStinger, clearDeliveryAnimTimers],
   );
 
   const handleBowlRelease = useCallback(() => {
     if (!active || phaseGate !== "BOWL_METER") return;
     const dist = Math.abs(meterPos - 0.5);
     const releaseAccuracy = Math.max(0.2, Math.min(1, 1 - dist * 1.85));
+    const target = getNextBowlReleaseTarget(controlMode, userControlsBatting);
 
-    if (controlMode === "ONLINE_FRIEND" && !userControlsBatting) {
+    if (target === "ONLINE_WAIT") {
       onOnlineSubmitBowl?.(selectedLength, selectedLine, releaseAccuracy);
       setPhaseGate("ANIMATING");
       setAnimation({
@@ -354,7 +404,7 @@ export function BroadcastMatchView({
       return;
     }
 
-    if (!userControlsBatting) {
+    if (target === "BOT_BAT_AND_RESOLVE") {
       const botBat = chooseBotDelivery(active, botDifficulty, match.rngState, false, true);
       executeAndAnimateBall(
         selectedLength,
@@ -534,31 +584,133 @@ export function BroadcastMatchView({
     return () => clearTimeout(timer);
   }, [watchAiMode, match.phase, match.rngState, active, phaseGate, botDifficulty, aiSpeedMs, executeAndAnimateBall]);
 
+  const isBowlerMode = Boolean(userControlsBowling && phaseGate !== "BAT_TIMING");
+  const isBatterMode = Boolean(userControlsBatting && (!userControlsBowling || phaseGate === "BAT_TIMING"));
+
+  const latestActionsRef = useRef({
+    handleStartBall,
+    handleBowlRelease,
+    handleBatHit,
+    phaseGate,
+    userControlsBatting,
+    drawer,
+  });
+  latestActionsRef.current = {
+    handleStartBall,
+    handleBowlRelease,
+    handleBatHit,
+    phaseGate,
+    userControlsBatting,
+    drawer,
+  };
+
+  // 6-Second Auto-Launch Timer (Bowling & Batting) + Clean Cancellation
+  useEffect(() => {
+    const spec = getAutoLaunchSpec({
+      hasActiveInnings: Boolean(active),
+      watchAiMode,
+      drawerOpen: drawer !== "NONE",
+      matchPhase: match.phase,
+      phaseGate,
+      isBowlerMode,
+      isBatterMode,
+      controlMode,
+      hasOnlinePendingBowl: Boolean(onlinePendingBowl),
+    });
+
+    if (!spec) {
+      setAutoLaunchLabel(null);
+      setAutoLaunchSec(null);
+      return;
+    }
+
+    const startTime = Date.now();
+    setAutoLaunchLabel(spec.label);
+    setAutoLaunchSec(Math.ceil(spec.delayMs / 1000));
+
+    const intervalId = window.setInterval(() => {
+      const rem = Math.max(0, Math.ceil((spec.delayMs - (Date.now() - startTime)) / 1000));
+      setAutoLaunchSec(rem);
+    }, 250);
+
+    const timeoutId = window.setTimeout(() => {
+      setAutoLaunchLabel(null);
+      setAutoLaunchSec(null);
+      if (spec.triggerKind === "START") latestActionsRef.current.handleStartBall();
+      else if (spec.triggerKind === "RELEASE") latestActionsRef.current.handleBowlRelease();
+      else if (spec.triggerKind === "BAT") latestActionsRef.current.handleBatHit(false);
+    }, spec.delayMs);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.clearTimeout(timeoutId);
+      setAutoLaunchLabel(null);
+      setAutoLaunchSec(null);
+    };
+  }, [
+    active,
+    watchAiMode,
+    drawer,
+    match.phase,
+    phaseGate,
+    isBowlerMode,
+    isBatterMode,
+    controlMode,
+    onlinePendingBowl,
+  ]);
+
+  // Animation / Timer Fallback: ensure non-waiting states never stall in ANIMATING even on tab switch / frame skip
+  useEffect(() => {
+    if (phaseGate !== "ANIMATING" || watchAiMode) return;
+    if (controlMode === "ONLINE_FRIEND" && animation.phase !== "RESOLVING") return;
+
+    const fallbackId = window.setTimeout(() => {
+      clearDeliveryAnimTimers();
+      const reset = createIdleResetState(selectedLength, selectedLine);
+      setLockedBowl(reset.lockedBowl);
+      setTimingCallout(reset.timingCallout);
+      setDirectThrowNotice(reset.directThrowNotice);
+      setMeterPos(reset.meterPos);
+      setAnimation(reset.animation);
+      setPhaseGate(reset.phaseGate);
+    }, 2400);
+
+    return () => window.clearTimeout(fallbackId);
+  }, [phaseGate, watchAiMode, controlMode, animation.phase, selectedLength, selectedLine, clearDeliveryAnimTimers]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) return;
+      if (latestActionsRef.current.drawer !== "NONE") return;
+
       if (e.code === "Space") {
         e.preventDefault();
-        if (phaseGate === "BOWL_METER") handleBowlRelease();
-        else if (phaseGate === "BAT_TIMING") handleBatHit();
-        else if (phaseGate === "READY") handleStartBall();
-      } else if (e.code === "ArrowLeft" && userControlsBatting) {
+        if (e.repeat) return;
+        const activeEl = document.activeElement;
+        if (activeEl instanceof HTMLElement && activeEl.tagName === "BUTTON") {
+          activeEl.blur();
+        }
+        const gate = latestActionsRef.current.phaseGate;
+        if (gate === "BOWL_METER") latestActionsRef.current.handleBowlRelease();
+        else if (gate === "BAT_TIMING") latestActionsRef.current.handleBatHit(false);
+        else if (gate === "READY") latestActionsRef.current.handleStartBall();
+      } else if (e.code === "ArrowLeft" && latestActionsRef.current.userControlsBatting) {
         setBatterShiftX((x) => Math.max(-0.55, x - 0.15));
-      } else if (e.code === "ArrowRight" && userControlsBatting) {
+      } else if (e.code === "ArrowRight" && latestActionsRef.current.userControlsBatting) {
         setBatterShiftX((x) => Math.min(0.55, x + 0.15));
-      } else if (e.code === "KeyW" && userControlsBatting) {
+      } else if (e.code === "KeyW" && latestActionsRef.current.userControlsBatting) {
         setShotAimAngleDeg(0);
-      } else if (e.code === "KeyS" && userControlsBatting) {
+      } else if (e.code === "KeyS" && latestActionsRef.current.userControlsBatting) {
         setShotAimAngleDeg(180);
-      } else if (e.code === "KeyA" && userControlsBatting) {
+      } else if (e.code === "KeyA" && latestActionsRef.current.userControlsBatting) {
         setShotAimAngleDeg(-90);
-      } else if (e.code === "KeyD" && userControlsBatting) {
+      } else if (e.code === "KeyD" && latestActionsRef.current.userControlsBatting) {
         setShotAimAngleDeg(90);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [phaseGate, handleBowlRelease, handleBatHit, handleStartBall, userControlsBatting]);
+  }, []);
 
   const handleInstantSim = () => {
     const simmed = simulateFullMatch(match, botDifficulty);
@@ -576,9 +728,6 @@ export function BroadcastMatchView({
   }, [active]);
 
   const inSweetSpot = meterPos >= 0.36 && meterPos <= 0.64;
-
-  const isBowlerMode = Boolean(userControlsBowling && phaseGate !== "BAT_TIMING");
-  const isBatterMode = Boolean(userControlsBatting && (!userControlsBowling || phaseGate === "BAT_TIMING"));
 
   return (
     <div className="relative w-screen h-[100dvh] overflow-hidden bg-[#060B18] text-white select-none">
@@ -734,6 +883,7 @@ export function BroadcastMatchView({
                 <button
                   key={del.label}
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setSelectedLength(del.length);
                     setSelectedLine(del.line);
@@ -752,6 +902,22 @@ export function BroadcastMatchView({
           </div>
         )}
       </div>
+
+      {/* TOP-CENTER AUTO-LAUNCH COUNTDOWN & DIRECT THROW BADGE */}
+      {(autoLaunchLabel !== null && autoLaunchSec !== null) || directThrowNotice ? (
+        <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 pointer-events-none">
+          {autoLaunchLabel !== null && autoLaunchSec !== null && (
+            <div className="px-3 py-0.5 rounded-full bg-slate-950/80 border border-amber-400/50 text-[10px] font-black tracking-wider text-amber-300 shadow-lg tnum">
+              ⏱ {autoLaunchLabel}: {autoLaunchSec}s
+            </div>
+          )}
+          {directThrowNotice && (
+            <div className="px-3.5 py-0.5 rounded-full bg-amber-400 text-slate-950 border border-white text-[10px] font-black tracking-widest uppercase shadow-xl animate-pulse">
+              ⚡ DIRECT THROW TO STUMPS
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {/* PLAYER LEFT BANNER */}
       {onlineLeftNotice && (
@@ -790,6 +956,7 @@ export function BroadcastMatchView({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => setLoftToggle((v) => !v)}
               className={`w-11 h-11 rounded-full border-2 flex flex-col items-center justify-center text-[8px] font-black shadow-xl cursor-pointer transition ${
                 loftToggle
@@ -804,6 +971,7 @@ export function BroadcastMatchView({
 
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => setStepOutToggle((v) => !v)}
               className={`w-11 h-11 rounded-full border-2 flex flex-col items-center justify-center text-[8px] font-black shadow-xl cursor-pointer transition ${
                 stepOutToggle
@@ -831,6 +999,7 @@ export function BroadcastMatchView({
                     <button
                       key={d.label}
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         if (!isCenter) setShotAimAngleDeg(d.angleDeg);
                       }}
@@ -855,6 +1024,7 @@ export function BroadcastMatchView({
               <div className="flex items-center gap-1">
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setBatterShiftX((x) => Math.max(-0.55, x - 0.15))}
                   className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-black text-amber-300 cursor-pointer"
                 >
@@ -862,6 +1032,7 @@ export function BroadcastMatchView({
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setBatterShiftX((x) => Math.min(0.55, x + 0.15))}
                   className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-black text-amber-300 cursor-pointer"
                 >
@@ -883,6 +1054,7 @@ export function BroadcastMatchView({
                 <button
                   key={ln}
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setSelectedLine(ln)}
                   className={`px-2 py-1 rounded text-[10px] font-black cursor-pointer ${
                     selectedLine === ln ? "bg-sky-400 text-slate-950" : "bg-slate-800 text-slate-200"
@@ -907,6 +1079,7 @@ export function BroadcastMatchView({
                   <button
                     key={sh}
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => setSelectedShot(sh)}
                     className={`px-2 py-1 rounded-lg text-[10px] font-black cursor-pointer ${
                       selectedShot === sh
@@ -923,6 +1096,7 @@ export function BroadcastMatchView({
                 {phaseGate === "BAT_TIMING" && (
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handleBatHit(true)}
                     className="w-11 h-11 rounded-full bg-slate-900/90 border-2 border-amber-300/75 text-amber-200 hover:text-white flex flex-col items-center justify-center text-[8px] font-black shadow-xl cursor-pointer"
                     title="Leave / Defensive Block"
@@ -935,6 +1109,7 @@ export function BroadcastMatchView({
                 {phaseGate === "READY" ? (
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={handleStartBall}
                     className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl cursor-pointer border-2 border-white/60"
                   >
@@ -943,6 +1118,7 @@ export function BroadcastMatchView({
                 ) : phaseGate === "BAT_TIMING" ? (
                   <button
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handleBatHit(false)}
                     className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 via-lime-400 to-amber-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl cursor-pointer border-2 border-white animate-pulse"
                   >
@@ -985,6 +1161,7 @@ export function BroadcastMatchView({
               {phaseGate === "READY" ? (
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={handleStartBall}
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-sky-400 to-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider cursor-pointer shadow-lg"
                 >
@@ -993,13 +1170,16 @@ export function BroadcastMatchView({
               ) : phaseGate === "BOWL_METER" ? (
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={handleBowlRelease}
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-300 to-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider cursor-pointer shadow-lg animate-pulse"
                 >
-                  RELEASE!
+                  RELEASE! (Space)
                 </button>
               ) : (
-                <span className="text-[10px] font-bold text-slate-300">Delivering…</span>
+                <span className="text-[10px] font-bold text-slate-300">
+                  {controlMode === "ONLINE_FRIEND" ? "Waiting for batter…" : "Delivering…"}
+                </span>
               )}
             </div>
           )}
