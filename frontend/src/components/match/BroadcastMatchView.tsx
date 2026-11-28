@@ -128,7 +128,8 @@ export function BroadcastMatchView({
   const [loftToggle, setLoftToggle] = useState(false);
   const [stepOutToggle, setStepOutToggle] = useState(false);
   const [batterShiftX, setBatterShiftX] = useState(0);
-  const [shotAimAngleDeg, setShotAimAngleDeg] = useState(-35);
+  const [shotAimAngleDeg, setShotAimAngleDeg] = useState(0);
+  const [battingCameraMode, setBattingCameraMode] = useState<"BATSMAN_END" | "BOWLER_END">("BATSMAN_END");
 
   const [meterPos, setMeterPos] = useState(0.5);
   const [phaseGate, setPhaseGate] = useState<"READY" | "BOWL_METER" | "BAT_TIMING" | "ANIMATING">("READY");
@@ -390,13 +391,15 @@ export function BroadcastMatchView({
     executeAndAnimateBall,
   ]);
 
-  const handleBatHit = useCallback(() => {
-    if (!active || phaseGate !== "BAT_TIMING") return;
-    const offset = meterPos - 0.5;
-    const dist = Math.abs(offset);
-    const timing = Math.max(0.12, Math.min(1, 1 - dist * 1.9));
-    const grade: TimingGrade =
-      dist <= 0.08
+  const handleBatHit = useCallback(
+    (forceDefend = false) => {
+      if (!active || phaseGate !== "BAT_TIMING") return;
+      const offset = meterPos - 0.5;
+      const dist = Math.abs(offset);
+      const timing = forceDefend ? 0.85 : Math.max(0.12, Math.min(1, 1 - dist * 1.9));
+      const grade: TimingGrade = forceDefend
+        ? "GOOD_LATE"
+        : dist <= 0.08
         ? "PERFECT"
         : dist <= 0.2
         ? offset < 0
@@ -408,53 +411,57 @@ export function BroadcastMatchView({
           : "TOO_LATE"
         : "MISSED";
 
-    const effectiveShot: ShotType = loftToggle && (selectedShot === "Defend" || selectedShot === "Rotate")
-      ? "Loft"
-      : selectedShot;
+      const effectiveShot: ShotType = forceDefend
+        ? "Defend"
+        : loftToggle && (selectedShot === "Defend" || selectedShot === "Rotate")
+        ? "Loft"
+        : selectedShot;
 
-    if (controlMode === "ONLINE_FRIEND" && onlinePendingBowl) {
-      onOnlineSubmitBat?.(
-        onlinePendingBowl.deliveryId,
+      if (controlMode === "ONLINE_FRIEND" && onlinePendingBowl) {
+        onOnlineSubmitBat?.(
+          onlinePendingBowl.deliveryId,
+          effectiveShot,
+          timing,
+          grade,
+          forceDefend ? false : loftToggle,
+          forceDefend ? false : stepOutToggle,
+        );
+        setTimingCallout(grade);
+        setPhaseGate("ANIMATING");
+        return;
+      }
+
+      const bowl =
+        lockedBowl ||
+        chooseBotDelivery(active, botDifficulty, match.rngState, true, false).input;
+
+      executeAndAnimateBall(
+        bowl.length,
+        bowl.line,
+        bowl.releaseAccuracy,
         effectiveShot,
         timing,
         grade,
-        loftToggle,
-        stepOutToggle,
+        forceDefend ? false : loftToggle,
+        forceDefend ? false : stepOutToggle,
       );
-      setTimingCallout(grade);
-      setPhaseGate("ANIMATING");
-      return;
-    }
-
-    const bowl =
-      lockedBowl ||
-      chooseBotDelivery(active, botDifficulty, match.rngState, true, false).input;
-
-    executeAndAnimateBall(
-      bowl.length,
-      bowl.line,
-      bowl.releaseAccuracy,
-      effectiveShot,
-      timing,
-      grade,
+    },
+    [
+      active,
+      phaseGate,
+      meterPos,
       loftToggle,
+      selectedShot,
+      controlMode,
+      onlinePendingBowl,
+      onOnlineSubmitBat,
       stepOutToggle,
-    );
-  }, [
-    active,
-    phaseGate,
-    meterPos,
-    loftToggle,
-    selectedShot,
-    controlMode,
-    onlinePendingBowl,
-    onOnlineSubmitBat,
-    stepOutToggle,
-    lockedBowl,
-    botDifficulty,
-    match.rngState,
-    executeAndAnimateBall,
-  ]);
+      lockedBowl,
+      botDifficulty,
+      match.rngState,
+      executeAndAnimateBall,
+    ],
+  );
 
   const handleStartBall = useCallback(() => {
     if (!active || phaseGate !== "READY") return;
@@ -529,7 +536,8 @@ export function BroadcastMatchView({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) {
+      if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.code === "Space") {
         e.preventDefault();
         if (phaseGate === "BOWL_METER") handleBowlRelease();
         else if (phaseGate === "BAT_TIMING") handleBatHit();
@@ -538,6 +546,14 @@ export function BroadcastMatchView({
         setBatterShiftX((x) => Math.max(-0.55, x - 0.15));
       } else if (e.code === "ArrowRight" && userControlsBatting) {
         setBatterShiftX((x) => Math.min(0.55, x + 0.15));
+      } else if (e.code === "KeyW" && userControlsBatting) {
+        setShotAimAngleDeg(0);
+      } else if (e.code === "KeyS" && userControlsBatting) {
+        setShotAimAngleDeg(180);
+      } else if (e.code === "KeyA" && userControlsBatting) {
+        setShotAimAngleDeg(-90);
+      } else if (e.code === "KeyD" && userControlsBatting) {
+        setShotAimAngleDeg(90);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -574,6 +590,7 @@ export function BroadcastMatchView({
           bowlingColor={bowlingLineup.kit.primary}
           canPickTarget={Boolean(isBowlerMode && (phaseGate === "READY" || phaseGate === "BOWL_METER"))}
           isBowlingCamera={isBowlerMode}
+          battingCameraMode={battingCameraMode}
           selectedLength={selectedLength}
           selectedLine={selectedLine}
           batterShiftX={batterShiftX}
@@ -588,16 +605,37 @@ export function BroadcastMatchView({
         />
       </div>
 
-      {/* TOP-LEFT: WCC CIRCULAR FIELD RADAR MINI-MAP */}
+      {/* TOP-LEFT: WCC CIRCULAR FIELD RADAR MINI-MAP WITH LIVE AIM WEDGE */}
       <div className="absolute top-2.5 left-2.5 z-20 flex items-start gap-2 pointer-events-none">
         <svg
           viewBox="0 0 100 100"
-          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-emerald-950/65 border-2 border-emerald-300/60 backdrop-blur-sm shadow-xl"
+          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-emerald-950/70 border-2 border-emerald-300/65 backdrop-blur-sm shadow-xl"
         >
           {/* 30-yard circle */}
           <circle cx="50" cy="50" r="22" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="0.9" strokeDasharray="2.5 2" />
           {/* Pitch strip */}
-          <rect x="46.5" y="40" width="7" height="20" rx="1" fill="#d6b888" opacity="0.85" />
+          <rect x="46.5" y="40" width="7" height="20" rx="1" fill="#d6b888" opacity="0.9" />
+          {/* Live Shot Aim Sector Wedge (matches 3D shotAimGroup!) */}
+          {isBatterMode && (() => {
+            const bx = 50;
+            const by = 56;
+            const r = 42;
+            const baseDeg = battingCameraMode === "BOWLER_END" ? shotAimAngleDeg + 180 : shotAimAngleDeg;
+            const rad0 = ((baseDeg - 20) * Math.PI) / 180;
+            const rad1 = ((baseDeg + 20) * Math.PI) / 180;
+            const x1 = bx + Math.sin(rad0) * r;
+            const y1 = by - Math.cos(rad0) * r;
+            const x2 = bx + Math.sin(rad1) * r;
+            const y2 = by - Math.cos(rad1) * r;
+            return (
+              <path
+                d={`M ${bx} ${by} L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${r} ${r} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z`}
+                fill="rgba(250, 204, 21, 0.36)"
+                stroke="#facc15"
+                strokeWidth="0.9"
+              />
+            );
+          })()}
           {/* Stumps dots */}
           <circle cx="50" cy="42" r="1.2" fill="#ef4444" />
           <circle cx="50" cy="58" r="1.2" fill="#ef4444" />
@@ -671,6 +709,22 @@ export function BroadcastMatchView({
           </button>
         </div>
 
+        {/* WCC Horizontal Top-Right Batting Timing Meter (Red-Orange-Green-Orange-Red) */}
+        {isBatterMode && !watchAiMode && (phaseGate === "BAT_TIMING" || (phaseGate === "ANIMATING" && timingCallout)) && (
+          <div className="flex flex-col items-end gap-0.5 bg-slate-950/80 backdrop-blur-sm border border-white/15 rounded-xl px-2.5 py-1.5 shadow-xl">
+            <div className="relative w-32 sm:w-40 h-3 rounded-full overflow-hidden border border-white/30 bg-gradient-to-r from-rose-600 via-amber-400 to-rose-600">
+              <div className="absolute inset-y-0 left-[36%] w-[28%] bg-emerald-500 border-x border-white/80" />
+              <div
+                className="absolute -top-0.5 w-2 h-4 bg-white border border-slate-950 rounded-sm shadow"
+                style={{ left: `calc(${Math.max(4, Math.min(96, meterPos * 100))}% - 4px)` }}
+              />
+            </div>
+            <div className="text-[10px] font-black tracking-wider uppercase text-amber-300">
+              {timingCallout && phaseGate === "ANIMATING" ? timingGradeLabel(timingCallout) : "TIMING BAR"}
+            </div>
+          </div>
+        )}
+
         {/* WCC Circular Delivery Buttons when Bowling */}
         {isBowlerMode && (phaseGate === "READY" || phaseGate === "BOWL_METER") && (
           <div className="grid grid-cols-2 gap-1.5 bg-slate-950/55 backdrop-blur-sm rounded-2xl p-1.5 border border-white/10">
@@ -706,13 +760,6 @@ export function BroadcastMatchView({
         </div>
       )}
 
-      {/* TIMING CALLOUT BADGE NEAR BATSMAN */}
-      {timingCallout && phaseGate === "ANIMATING" && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-20 px-4 py-1 rounded-full bg-slate-950/90 border border-amber-400/70 text-xs font-black tracking-widest text-amber-300 shadow-lg">
-          {timingGradeLabel(timingCallout)}
-        </div>
-      )}
-
       {/* BOWLER CHOICE AT START OF OVER */}
       {isStartOfOver && userControlsBowling && phaseGate === "READY" && !watchAiMode && (
         <div className="absolute top-28 left-2.5 z-20 max-w-[260px] rounded-xl bg-slate-950/85 border border-sky-400/45 p-2 space-y-1 shadow-xl">
@@ -736,58 +783,91 @@ export function BroadcastMatchView({
         </div>
       )}
 
-      {/* WCC PRO-CONTROL BATTING LEFT WHEEL + CREASE FOOTWORK (ABOVE SCOREBUG) */}
+      {/* WCC PRO-CONTROL BATTING LEFT CLUSTER: LOFT/ADVANCE + SHOT COMPASS + CREASE FOOTWORK */}
       {isBatterMode && !watchAiMode && (phaseGate === "READY" || phaseGate === "BAT_TIMING") && (
-        <div className="absolute bottom-[74px] sm:bottom-[82px] left-2.5 z-20 flex items-end gap-2">
-          {/* 8-Way Shot Direction Compass */}
-          <div className="rounded-2xl bg-slate-950/70 backdrop-blur-sm border border-amber-400/35 p-1.5 shadow-xl">
-            <div className="text-[8px] font-black uppercase text-center text-amber-300 mb-1">
-              Shot Aim
-            </div>
-            <div className="grid grid-cols-3 gap-0.5">
-              {SHOT_DIRECTIONS.map((d) => {
-                const isCenter = d.label === "•";
-                const isSelected = !isCenter && shotAimAngleDeg === d.angleDeg;
-                return (
-                  <button
-                    key={d.label}
-                    type="button"
-                    onClick={() => {
-                      if (!isCenter) setShotAimAngleDeg(d.angleDeg);
-                    }}
-                    className={`w-6 h-6 rounded flex items-center justify-center text-xs font-black cursor-pointer ${
-                      isCenter
-                        ? "bg-slate-800 text-slate-400 cursor-default"
-                        : isSelected
-                        ? "bg-amber-400 text-slate-950 shadow"
-                        : "bg-slate-900/90 text-amber-200 hover:bg-slate-800"
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                );
-              })}
-            </div>
+        <div className="absolute bottom-[74px] sm:bottom-[82px] left-2.5 z-20 flex flex-col gap-1.5">
+          {/* LOFT % Ring + ADVANCE Circular Buttons (WCC Pro-Control Left Stack) */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setLoftToggle((v) => !v)}
+              className={`w-11 h-11 rounded-full border-2 flex flex-col items-center justify-center text-[8px] font-black shadow-xl cursor-pointer transition ${
+                loftToggle
+                  ? "bg-gradient-to-b from-amber-300 to-amber-500 border-white text-slate-950 scale-105"
+                  : "bg-slate-950/80 border-cyan-400/80 text-cyan-200 hover:border-amber-300"
+              }`}
+              title="Toggle Lofted Shot"
+            >
+              <span className="text-[10px] leading-none">{loftToggle ? "100%" : "LOFT"}</span>
+              <span className="text-[7px] opacity-85">{loftToggle ? "LOFT ON" : "GROUND"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStepOutToggle((v) => !v)}
+              className={`w-11 h-11 rounded-full border-2 flex flex-col items-center justify-center text-[8px] font-black shadow-xl cursor-pointer transition ${
+                stepOutToggle
+                  ? "bg-amber-400 border-white text-slate-950 scale-105"
+                  : "bg-slate-950/80 border-amber-300/70 text-amber-200 hover:border-white"
+              }`}
+              title="Advance Down Pitch"
+            >
+              <span className="text-xs leading-none">👣</span>
+              <span>ADV</span>
+            </button>
           </div>
 
-          {/* Move Batsman Left/Right */}
-          <div className="flex flex-col gap-1 bg-slate-950/70 border border-white/15 rounded-xl p-1">
-            <span className="text-[8px] font-bold uppercase text-center text-slate-300">Stance</span>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => setBatterShiftX((x) => Math.max(-0.55, x - 0.15))}
-                className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-black text-amber-300 cursor-pointer"
-              >
-                ◀
-              </button>
-              <button
-                type="button"
-                onClick={() => setBatterShiftX((x) => Math.min(0.55, x + 0.15))}
-                className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-black text-amber-300 cursor-pointer"
-              >
-                ▶
-              </button>
+          <div className="flex items-end gap-1.5">
+            {/* 8-Way Shot Direction Compass */}
+            <div className="rounded-2xl bg-slate-950/75 backdrop-blur-sm border border-amber-400/40 p-1.5 shadow-xl">
+              <div className="text-[8px] font-black uppercase text-center text-amber-300 mb-0.5">
+                Shot Aim
+              </div>
+              <div className="grid grid-cols-3 gap-0.5">
+                {SHOT_DIRECTIONS.map((d) => {
+                  const isCenter = d.label === "•";
+                  const isSelected = !isCenter && shotAimAngleDeg === d.angleDeg;
+                  return (
+                    <button
+                      key={d.label}
+                      type="button"
+                      onClick={() => {
+                        if (!isCenter) setShotAimAngleDeg(d.angleDeg);
+                      }}
+                      className={`w-6 h-6 rounded flex items-center justify-center text-xs font-black cursor-pointer ${
+                        isCenter
+                          ? "bg-slate-800 text-slate-400 cursor-default"
+                          : isSelected
+                          ? "bg-amber-400 text-slate-950 shadow"
+                          : "bg-slate-900/90 text-amber-200 hover:bg-slate-800"
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Crease Footwork Box (Left/Right Stance Shift) */}
+            <div className="flex flex-col gap-1 bg-slate-950/75 border border-white/15 rounded-xl p-1.5">
+              <span className="text-[8px] font-bold uppercase text-center text-slate-300">Crease</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setBatterShiftX((x) => Math.max(-0.55, x - 0.15))}
+                  className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-black text-amber-300 cursor-pointer"
+                >
+                  ◀
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBatterShiftX((x) => Math.min(0.55, x + 0.15))}
+                  className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-black text-amber-300 cursor-pointer"
+                >
+                  ▶
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -816,94 +896,65 @@ export function BroadcastMatchView({
         </div>
       )}
 
-      {/* RIGHT-SIDE WCC BOWLING METER OR BATTING TIMING BAR + LOFT + HIT */}
+      {/* RIGHT-SIDE WCC BOWLING METER OR BATTING LEAVE + SHOT TYPE + CURVED BAT ACTION */}
       {active && match.phase !== "COMPLETE" && match.phase !== "INNINGS_BREAK" && !watchAiMode && (
         <div className="absolute bottom-[74px] sm:bottom-[82px] right-2.5 z-20 flex items-end gap-2">
-          {/* BATTING: Shot Pills + Vertical Timing Bar + Gold LOFT Button + HIT */}
+          {/* BATTING: Shot Pills + LEAVE Circle + Main BAT Swing Arc */}
           {isBatterMode && (
-            <>
-              <div className="flex flex-col items-end gap-1.5">
-                <div className="flex flex-wrap justify-end gap-1 bg-slate-950/70 backdrop-blur-sm rounded-xl p-1 border border-white/15">
-                  {SHOTS.map((sh) => (
-                    <button
-                      key={sh}
-                      type="button"
-                      onClick={() => setSelectedShot(sh)}
-                      className={`px-2 py-1 rounded-lg text-[10px] font-black cursor-pointer ${
-                        selectedShot === sh
-                          ? "bg-amber-400 text-slate-950"
-                          : "bg-slate-800 text-slate-200"
-                      }`}
-                    >
-                      {sh}
-                    </button>
-                  ))}
+            <div className="flex flex-col items-end gap-1.5">
+              <div className="flex flex-wrap justify-end gap-1 bg-slate-950/70 backdrop-blur-sm rounded-xl p-1 border border-white/15">
+                {SHOTS.map((sh) => (
                   <button
+                    key={sh}
                     type="button"
-                    onClick={() => setStepOutToggle((v) => !v)}
+                    onClick={() => setSelectedShot(sh)}
                     className={`px-2 py-1 rounded-lg text-[10px] font-black cursor-pointer ${
-                      stepOutToggle ? "bg-sky-400 text-slate-950" : "bg-slate-800 text-slate-300"
+                      selectedShot === sh
+                        ? "bg-amber-400 text-slate-950"
+                        : "bg-slate-800 text-slate-200"
                     }`}
                   >
-                    Step Out
+                    {sh}
                   </button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setLoftToggle((v) => !v)}
-                    className={`w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center text-[9px] font-black shadow-xl cursor-pointer transition ${
-                      loftToggle
-                        ? "bg-amber-400 border-white text-slate-950 scale-105"
-                        : "bg-amber-500/75 border-amber-200 text-slate-950"
-                    }`}
-                  >
-                    <span className="text-sm leading-none">🏏</span>
-                    <span>LOFT</span>
-                  </button>
-
-                  {phaseGate === "READY" ? (
-                    <button
-                      type="button"
-                      onClick={handleStartBall}
-                      className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl cursor-pointer"
-                    >
-                      Face Ball →
-                    </button>
-                  ) : phaseGate === "BAT_TIMING" ? (
-                    <button
-                      type="button"
-                      onClick={handleBatHit}
-                      className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-amber-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl cursor-pointer animate-pulse"
-                    >
-                      HIT! (Space)
-                    </button>
-                  ) : (
-                    <span className="px-3 py-2 rounded-xl bg-slate-950/75 text-[11px] font-bold text-slate-300">
-                      {controlMode === "ONLINE_FRIEND" && !onlinePendingBowl ? "Waiting…" : "Shot…"}
-                    </span>
-                  )}
-                </div>
+                ))}
               </div>
 
-              {/* WCC Vertical Timing Gauge (Late | Perfect | Early) */}
-              {phaseGate === "BAT_TIMING" && (
-                <div className="flex flex-col items-center bg-slate-950/80 border border-white/20 rounded-xl px-1.5 py-2 shadow-xl">
-                  <span className="text-[8px] font-black text-rose-300">Late</span>
-                  <div className="relative w-3 h-28 my-1 rounded-full overflow-hidden bg-gradient-to-b from-rose-600 via-emerald-400 to-rose-600">
-                    {/* Green center target band */}
-                    <div className="absolute inset-x-0 top-[36%] h-[28%] bg-emerald-400 border-y border-white/70" />
-                    {/* Moving white indicator */}
-                    <div
-                      className="absolute -left-1 -right-1 h-1.5 bg-white border border-slate-950 rounded"
-                      style={{ top: `${Math.max(0, Math.min(94, meterPos * 100))}%` }}
-                    />
-                  </div>
-                  <span className="text-[8px] font-black text-rose-300">Early</span>
-                </div>
-              )}
-            </>
+              <div className="flex items-center gap-2">
+                {phaseGate === "BAT_TIMING" && (
+                  <button
+                    type="button"
+                    onClick={() => handleBatHit(true)}
+                    className="w-11 h-11 rounded-full bg-slate-900/90 border-2 border-amber-300/75 text-amber-200 hover:text-white flex flex-col items-center justify-center text-[8px] font-black shadow-xl cursor-pointer"
+                    title="Leave / Defensive Block"
+                  >
+                    <span className="text-xs leading-none">🛡</span>
+                    <span>LEAVE</span>
+                  </button>
+                )}
+
+                {phaseGate === "READY" ? (
+                  <button
+                    type="button"
+                    onClick={handleStartBall}
+                    className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl cursor-pointer border-2 border-white/60"
+                  >
+                    🏏 Face Ball (Space)
+                  </button>
+                ) : phaseGate === "BAT_TIMING" ? (
+                  <button
+                    type="button"
+                    onClick={() => handleBatHit(false)}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 via-lime-400 to-amber-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl cursor-pointer border-2 border-white animate-pulse"
+                  >
+                    🏏 BAT! (Space)
+                  </button>
+                ) : (
+                  <span className="px-3 py-2 rounded-xl bg-slate-950/75 text-[11px] font-bold text-slate-300">
+                    {controlMode === "ONLINE_FRIEND" && !onlinePendingBowl ? "Waiting…" : "Shot…"}
+                  </span>
+                )}
+              </div>
+            </div>
           )}
 
           {/* BOWLING: WCC Curved Speed/Release Meter + Ball */}
@@ -1204,6 +1255,15 @@ export function BroadcastMatchView({
 
             {drawer === "MENU" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setBattingCameraMode((c) => (c === "BATSMAN_END" ? "BOWLER_END" : "BATSMAN_END"))
+                  }
+                  className="p-3 rounded-xl bg-slate-950 border border-sky-400/40 font-black text-sky-300 cursor-pointer"
+                >
+                  🎥 Batting Cam: {battingCameraMode === "BATSMAN_END" ? "Batsman End (Pro)" : "Bowler End"}
+                </button>
                 {controlMode !== "ONLINE_FRIEND" && match.phase !== "COMPLETE" && (
                   <>
                     <button

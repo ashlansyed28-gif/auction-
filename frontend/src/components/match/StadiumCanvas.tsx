@@ -35,10 +35,11 @@ interface StadiumCanvasProps {
   bowlingColor: string;
   canPickTarget: boolean;
   isBowlingCamera?: boolean;
+  battingCameraMode?: "BATSMAN_END" | "BOWLER_END";
   selectedLength: BowlingLength;
   selectedLine: BowlingLine;
-  batterShiftX?: number; // -0.6 .. +0.6
-  shotAimAngleDeg?: number; // -180..180 for WCC Pro-Control aim cone
+  batterShiftX?: number; // -0.55 .. +0.55 (screen left/right in Batsman End)
+  shotAimAngleDeg?: number; // -180..180 for WCC Pro-Control aim cone (0 = straight down ground -Z)
   showShotAimCone?: boolean;
   bowlerJerseyNumber?: number;
   onPickTarget: (length: BowlingLength, line: BowlingLine) => void;
@@ -321,16 +322,30 @@ function mapWorldPitchToTarget(x: number, z: number): { length: BowlingLength; l
   return { length, line };
 }
 
-function getShotSwingDir(shot: ShotType, line: BowlingLine, aimAngleDeg?: number): { dirX: number; dirZ: number } {
+function getShotSwingDir(
+  shot: ShotType,
+  line: BowlingLine,
+  aimAngleDeg?: number,
+  battingCameraMode: "BATSMAN_END" | "BOWLER_END" = "BATSMAN_END",
+): { dirX: number; dirZ: number } {
   if (typeof aimAngleDeg === "number" && Number.isFinite(aimAngleDeg)) {
     const rad = (aimAngleDeg * Math.PI) / 180;
+    // In BATSMAN_END (+Z looking -Z toward bowler):
+    // 0° (Up/Forward) -> -Z; 180° (Down/Backward) -> +Z; -90° (Left) -> -X; +90° (Right) -> +X.
+    if (battingCameraMode === "BOWLER_END") {
+      // In BOWLER_END (-Z looking +Z), screen Up is +Z and screen Left is +X,
+      // wait: in cricket "Forward/Straight" should still go toward the outfield/bowler-or-cover;
+      // keeping screen-relative mapping in BOWLER_END ensures Up goes down-screen-up (+Z) or straight.
+      // Actually in BOWLER_END camera, world -Z is TOWARD camera (screen down), +Z is screen up, +X is screen left, -X is screen right.
+      return { dirX: -Math.sin(rad), dirZ: Math.cos(rad) };
+    }
     return { dirX: Math.sin(rad), dirZ: -Math.cos(rad) };
   }
   if (shot === "Defend") return { dirX: 0.1, dirZ: -1 };
-  if (shot === "Rotate") return { dirX: line === "Off" ? -0.7 : 0.7, dirZ: -0.7 };
-  if (shot === "Drive") return { dirX: -0.55, dirZ: -0.85 };
-  if (shot === "Loft") return { dirX: 0.2, dirZ: -0.98 };
-  return { dirX: 0.75, dirZ: -0.66 };
+  if (shot === "Rotate") return { dirX: line === "Off" ? 0.7 : -0.7, dirZ: -0.7 };
+  if (shot === "Drive") return { dirX: 0.55, dirZ: -0.85 };
+  if (shot === "Loft") return { dirX: 0.15, dirZ: -0.98 };
+  return { dirX: -0.72, dirZ: -0.68 };
 }
 
 export function StadiumCanvas({
@@ -339,10 +354,11 @@ export function StadiumCanvas({
   bowlingColor,
   canPickTarget,
   isBowlingCamera = false,
+  battingCameraMode = "BATSMAN_END",
   selectedLength,
   selectedLine,
   batterShiftX = 0,
-  shotAimAngleDeg = -25,
+  shotAimAngleDeg = 0,
   showShotAimCone = false,
   bowlerJerseyNumber = 19,
   onPickTarget,
@@ -356,6 +372,7 @@ export function StadiumCanvas({
     bowlingColor,
     canPickTarget,
     isBowlingCamera,
+    battingCameraMode,
     selectedLength,
     selectedLine,
     batterShiftX,
@@ -371,6 +388,7 @@ export function StadiumCanvas({
     bowlingColor,
     canPickTarget,
     isBowlingCamera,
+    battingCameraMode,
     selectedLength,
     selectedLine,
     batterShiftX,
@@ -603,15 +621,36 @@ export function StadiumCanvas({
     );
     scene.add(swingCurveLine);
 
-    // Batting Shot Direction Aim Cone on Pitch (Pro-Control UI!)
-    const shotAimCone = new THREE.Mesh(
-      new THREE.CircleGeometry(3.2, 24, -Math.PI / 10, Math.PI / 5),
-      new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }),
+    // Batting Shot Direction Aim Cone on Pitch (XZ plane, +0° = toward bowler -Z)
+    const shotAimGroup = new THREE.Group();
+    const coneRadius = 4.4;
+    const coneHalfSpread = Math.PI / 11;
+    const coneVerts: number[] = [];
+    const segs = 14;
+    for (let s = 0; s < segs; s++) {
+      const a0 = -coneHalfSpread + (s / segs) * coneHalfSpread * 2;
+      const a1 = -coneHalfSpread + ((s + 1) / segs) * coneHalfSpread * 2;
+      coneVerts.push(0, 0, 0);
+      coneVerts.push(Math.sin(a0) * coneRadius, 0, -Math.cos(a0) * coneRadius);
+      coneVerts.push(Math.sin(a1) * coneRadius, 0, -Math.cos(a1) * coneRadius);
+    }
+    const coneGeo = new THREE.BufferGeometry();
+    coneGeo.setAttribute("position", new THREE.Float32BufferAttribute(coneVerts, 3));
+    const shotAimMesh = new THREE.Mesh(
+      coneGeo,
+      new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.34, side: THREE.DoubleSide, depthWrite: false }),
     );
-    shotAimCone.rotation.x = -Math.PI / 2;
-    shotAimCone.position.set(0, 0.042, 9.1);
-    shotAimCone.visible = false;
-    scene.add(shotAimCone);
+    const shotAimSpine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0.01, 0),
+        new THREE.Vector3(0, 0.01, -coneRadius * 1.18),
+      ]),
+      new THREE.LineBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.9 }),
+    );
+    shotAimGroup.add(shotAimMesh, shotAimSpine);
+    shotAimGroup.position.set(0, 0.044, 9.15);
+    shotAimGroup.visible = false;
+    scene.add(shotAimGroup);
 
     const rippleMesh = new THREE.Mesh(
       new THREE.RingGeometry(0.14, 0.24, 24),
@@ -623,8 +662,9 @@ export function StadiumCanvas({
 
     // Articulated Players + Classic Red-Shirt Umpire
     const strikerRig = buildCricketerRig(battingColor, "#fde047", { isBatter: true, hasHelmet: true });
-    strikerRig.root.position.set(-0.28, 0, 9.15);
-    strikerRig.root.rotation.y = Math.PI * 0.48;
+    strikerRig.root.position.set(-0.32, 0, 9.15);
+    strikerRig.root.rotation.y = Math.PI * 0.52;
+    strikerRig.head.rotation.y = Math.PI * 0.44;
     scene.add(strikerRig.root);
 
     const nonStrikerRig = buildCricketerRig(battingColor, "#fde047", { isBatter: true, hasHelmet: true });
@@ -696,6 +736,7 @@ export function StadiumCanvas({
         pitch: curPitch,
         canPickTarget: allowPick,
         isBowlingCamera: bowlCam,
+        battingCameraMode: batCamMode,
         selectedLength: selLen,
         selectedLine: selLine,
         batterShiftX: shiftX,
@@ -703,6 +744,8 @@ export function StadiumCanvas({
         showShotAimCone: showCone,
         animation: anim,
       } = propsRef.current;
+
+      const worldShiftX = !bowlCam && batCamMode === "BOWLER_END" ? -shiftX : shiftX;
 
       pitchMat.color.setHex(
         curPitch === "Green" ? 0xa3b165 : curPitch === "Dusty" ? 0xd6b888 : 0xc8b99d,
@@ -738,11 +781,12 @@ export function StadiumCanvas({
         swingCurveLine.visible = false;
       }
 
-      // Shot Direction Aim Cone on pitch while batting
-      shotAimCone.visible = showCone && anim.phase !== "RESOLVING";
-      if (shotAimCone.visible) {
-        shotAimCone.position.set(-0.28 + shiftX, 0.042, 9.15);
-        shotAimCone.rotation.z = ((aimDeg - 90) * Math.PI) / 180;
+      // Shot Direction Aim Cone on pitch while batting (always matches exact ball hit vector)
+      shotAimGroup.visible = showCone && anim.phase !== "RESOLVING";
+      if (shotAimGroup.visible) {
+        const coneDir = getShotSwingDir("Drive", activeLn, aimDeg, batCamMode);
+        shotAimGroup.position.set(-0.32 + worldShiftX, 0.044, 9.15);
+        shotAimGroup.rotation.y = -Math.atan2(coneDir.dirX, -coneDir.dirZ);
       }
 
       if (anim.phase !== "RESOLVING") {
@@ -760,7 +804,7 @@ export function StadiumCanvas({
       }
 
       // Striker position & stance
-      strikerRig.root.position.x = -0.28 + shiftX;
+      strikerRig.root.position.x = -0.32 + worldShiftX;
       if (anim.phase === "RESOLVING" && anim.outcome && effectiveMs >= 320) {
         const swingT = Math.min(1, (effectiveMs - 320) / 260);
         const shot = anim.outcome.shotType;
@@ -817,10 +861,14 @@ export function StadiumCanvas({
 
       let targetCamPos = bowlCam
         ? new THREE.Vector3(0, 4.4, -27.5)
-        : new THREE.Vector3(1.3, 3.8, -19.0);
+        : batCamMode === "BOWLER_END"
+        ? new THREE.Vector3(1.3, 3.8, -19.0)
+        : new THREE.Vector3(0.95, 2.95, 14.9);
       let targetCamLook = bowlCam
         ? new THREE.Vector3(0, 1.0, 8.5)
-        : new THREE.Vector3(0, 1.05, 9.2);
+        : batCamMode === "BOWLER_END"
+        ? new THREE.Vector3(0, 1.05, 9.2)
+        : new THREE.Vector3(0, 0.95, -7.5);
 
       if (anim.phase === "RESOLVING" && anim.outcome) {
         const out = anim.outcome;
@@ -831,7 +879,7 @@ export function StadiumCanvas({
         const t = Math.min(1, effectiveMs / flightDuration);
         const releasePos = new THREE.Vector3(0.45, 2.08, -10.0);
         const bouncePos = new THREE.Vector3(bounceCoords.x, 0.11, bounceCoords.z);
-        const batContactPos = new THREE.Vector3(bounceCoords.x * 0.45 + shiftX * 0.4, 0.85, 9.2);
+        const batContactPos = new THREE.Vector3(bounceCoords.x * 0.45 + worldShiftX * 0.4, 0.85, 9.2);
 
         if (t < 0.36) {
           const u = t / 0.36;
@@ -866,7 +914,12 @@ export function StadiumCanvas({
               b.rotation.y = wt * 8;
             });
           } else {
-            const { dirX, dirZ } = getShotSwingDir(out.shotType, out.line, showCone ? aimDeg : undefined);
+            const { dirX, dirZ } = getShotSwingDir(
+              out.shotType,
+              out.line,
+              showCone ? aimDeg : undefined,
+              batCamMode,
+            );
             const distMeters =
               out.runs === 6
                 ? 68
@@ -894,11 +947,17 @@ export function StadiumCanvas({
             }
 
             if (out.runs >= 1) {
-              targetCamPos = new THREE.Vector3(
-                ballMesh.position.x * 0.45 + 6,
-                11 + out.runs * 1.2,
-                ballMesh.position.z * 0.4 - 14,
-              );
+              targetCamPos = !bowlCam && batCamMode === "BATSMAN_END"
+                ? new THREE.Vector3(
+                    ballMesh.position.x * 0.42 + 4.5,
+                    9.5 + out.runs * 1.1,
+                    Math.max(-18, ballMesh.position.z * 0.45 + 14.5),
+                  )
+                : new THREE.Vector3(
+                    ballMesh.position.x * 0.45 + 6,
+                    11 + out.runs * 1.2,
+                    ballMesh.position.z * 0.4 - 14,
+                  );
               targetCamLook = ballMesh.position.clone();
             }
 
