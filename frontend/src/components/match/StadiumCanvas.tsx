@@ -17,6 +17,18 @@ export interface DeliveryAnimationState {
   speedPreviewKmh?: number;
 }
 
+export const FIELDER_SPOTS: Array<[number, number]> = [
+  [-12, 16], // Point
+  [-18, 2], // Cover
+  [-13, -15], // Mid-off
+  [13, -15], // Mid-on
+  [18, 4], // Mid-wicket
+  [12, 17], // Square leg
+  [-34, -22], // Long-off
+  [34, -22], // Long-on
+  [26, 26], // Deep square
+];
+
 interface StadiumCanvasProps {
   pitch: PitchCondition;
   battingColor: string;
@@ -25,12 +37,13 @@ interface StadiumCanvasProps {
   isBowlingCamera?: boolean;
   selectedLength: BowlingLength;
   selectedLine: BowlingLine;
+  batterShiftX?: number; // -0.6 .. +0.6
+  shotAimAngleDeg?: number; // -180..180 for WCC Pro-Control aim cone
+  showShotAimCone?: boolean;
+  bowlerJerseyNumber?: number;
   onPickTarget: (length: BowlingLength, line: BowlingLine) => void;
   animation: DeliveryAnimationState;
 }
-
-const LENGTHS: BowlingLength[] = ["Short", "Good", "Full", "Yorker"];
-const LINES: BowlingLine[] = ["Off", "Middle", "Leg"];
 
 interface ArticulatedPlayerRig {
   root: THREE.Group;
@@ -43,31 +56,65 @@ interface ArticulatedPlayerRig {
   bat?: THREE.Group;
 }
 
+function makeJerseyBackTexture(jerseyHex: string, accentHex: string, numberText?: string): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = jerseyHex;
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.fillStyle = accentHex;
+  ctx.fillRect(0, 14, 128, 16);
+  if (numberText) {
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 44px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(numberText, 64, 74);
+  }
+  return new THREE.CanvasTexture(c);
+}
+
 function buildCricketerRig(
   jerseyColor: string,
   accentColor: string,
-  options: { isBatter?: boolean; isKeeper?: boolean; hasHelmet?: boolean } = {},
+  options: {
+    isBatter?: boolean;
+    isKeeper?: boolean;
+    hasHelmet?: boolean;
+    isUmpire?: boolean;
+    jerseyNumber?: number;
+  } = {},
 ): ArticulatedPlayerRig {
   const root = new THREE.Group();
 
   const skinMat = new THREE.MeshStandardMaterial({ color: 0xc6865c, roughness: 0.65 });
-  const jerseyMat = new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 0.55 });
+  const backTex = makeJerseyBackTexture(
+    options.isUmpire ? "#dc2626" : jerseyColor,
+    options.isUmpire ? "#1e293b" : accentColor,
+    options.jerseyNumber ? String(options.jerseyNumber) : undefined,
+  );
+  const jerseyMat = new THREE.MeshStandardMaterial({
+    map: backTex,
+    roughness: 0.55,
+  });
   const accentMat = new THREE.MeshStandardMaterial({ color: accentColor, roughness: 0.45 });
-  const trouserMat = new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 0.65 });
+  const trouserMat = new THREE.MeshStandardMaterial({
+    color: options.isUmpire ? "#1e293b" : jerseyColor,
+    roughness: 0.65,
+  });
   const padMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 });
   const gloveMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.45 });
   const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
 
-  // Ground contact shadow disc
   const shadowDisc = new THREE.Mesh(
-    new THREE.CircleGeometry(0.42, 18),
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.34, depthWrite: false }),
+    new THREE.CircleGeometry(0.46, 18),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false }),
   );
   shadowDisc.rotation.x = -Math.PI / 2;
-  shadowDisc.position.y = 0.02;
+  shadowDisc.position.y = 0.025;
   root.add(shadowDisc);
 
-  // Legs
   const makeLeg = (xOff: number) => {
     const legPivot = new THREE.Group();
     legPivot.position.set(xOff, 0.88, 0);
@@ -97,27 +144,33 @@ function buildCricketerRig(
   const rightLeg = makeLeg(0.14);
   root.add(leftLeg, rightLeg);
 
-  // Torso
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.56, 0.26), jerseyMat);
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.58, 0.26), jerseyMat);
   torso.position.y = 1.18;
   torso.castShadow = true;
   root.add(torso);
 
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.47, 0.1, 0.27), accentMat);
-  stripe.position.y = 0.06;
-  torso.add(stripe);
-
-  // Head + Helmet / Cap
   const head = new THREE.Group();
-  head.position.y = 1.62;
+  head.position.y = 1.63;
   const skull = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 12), skinMat);
   skull.castShadow = true;
   head.add(skull);
 
-  if (options.hasHelmet) {
+  if (options.isUmpire) {
+    const brim = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.28, 0.3, 0.03, 18),
+      new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 }),
+    );
+    brim.position.y = 0.08;
+    const hatTop = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.15, 0.17, 0.12, 14),
+      new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 }),
+    );
+    hatTop.position.y = 0.15;
+    head.add(brim, hatTop);
+  } else if (options.hasHelmet) {
     const helmetShell = new THREE.Mesh(
       new THREE.SphereGeometry(0.17, 14, 12, 0, Math.PI * 2, 0, Math.PI * 0.68),
-      jerseyMat,
+      new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 0.45 }),
     );
     helmetShell.position.y = 0.02;
     head.add(helmetShell);
@@ -146,11 +199,13 @@ function buildCricketerRig(
   }
   root.add(head);
 
-  // Arms
   const makeArm = (xOff: number) => {
     const armPivot = new THREE.Group();
     armPivot.position.set(xOff, 1.4, 0);
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.072, 0.062, 0.34, 8), jerseyMat);
+    const upper = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.072, 0.062, 0.34, 8),
+      new THREE.MeshStandardMaterial({ color: options.isUmpire ? "#dc2626" : jerseyColor, roughness: 0.55 }),
+    );
     upper.position.y = -0.16;
     upper.castShadow = true;
     armPivot.add(upper);
@@ -171,8 +226,8 @@ function buildCricketerRig(
     return armPivot;
   };
 
-  const leftArm = makeArm(-0.29);
-  const rightArm = makeArm(0.29);
+  const leftArm = makeArm(-0.3);
+  const rightArm = makeArm(0.3);
   root.add(leftArm, rightArm);
 
   let bat: THREE.Group | undefined;
@@ -188,10 +243,10 @@ function buildCricketerRig(
     bat.add(grip);
 
     const blade = new THREE.Mesh(
-      new THREE.BoxGeometry(0.115, 0.62, 0.045),
+      new THREE.BoxGeometry(0.118, 0.64, 0.045),
       new THREE.MeshStandardMaterial({ color: 0xe6c79c, roughness: 0.5 }),
     );
-    blade.position.y = -0.55;
+    blade.position.y = -0.56;
     blade.castShadow = true;
     bat.add(blade);
 
@@ -201,24 +256,20 @@ function buildCricketerRig(
   return { root, torso, head, leftArm, rightArm, leftLeg, rightLeg, bat };
 }
 
-function buildStumpsRig(): {
-  group: THREE.Group;
-  stumps: THREE.Mesh[];
-  bails: THREE.Mesh[];
-} {
+function buildStumpsRig() {
   const group = new THREE.Group();
   const woodMat = new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.45 });
   const bailMat = new THREE.MeshStandardMaterial({
     color: 0xff5722,
     emissive: 0xff3d00,
-    emissiveIntensity: 0.6,
+    emissiveIntensity: 0.65,
     roughness: 0.3,
   });
 
   const stumps: THREE.Mesh[] = [];
   for (const x of [-0.11, 0, 0.11]) {
-    const s = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.024, 0.72, 10), woodMat);
-    s.position.set(x, 0.36, 0);
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(0.023, 0.025, 0.73, 10), woodMat);
+    s.position.set(x, 0.365, 0);
     s.castShadow = true;
     group.add(s);
     stumps.push(s);
@@ -228,7 +279,7 @@ function buildStumpsRig(): {
   for (const bx of [-0.055, 0.055]) {
     const b = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.1, 8), bailMat);
     b.rotation.z = Math.PI / 2;
-    b.position.set(bx, 0.73, 0);
+    b.position.set(bx, 0.74, 0);
     group.add(b);
     bails.push(b);
   }
@@ -236,18 +287,30 @@ function buildStumpsRig(): {
   return { group, stumps, bails };
 }
 
+function makeCrowdTexture(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 512;
+  c.height = 128;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#1e293b";
+  ctx.fillRect(0, 0, 512, 128);
+  const colors = ["#ef4444", "#3b82f6", "#facc15", "#f8fafc", "#22c55e", "#f97316", "#a855f7"];
+  for (let y = 6; y < 124; y += 10) {
+    for (let x = 4; x < 508; x += 8) {
+      ctx.fillStyle = colors[(x * 7 + y * 13) % colors.length];
+      ctx.fillRect(x, y, 5, 6);
+    }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.repeat.set(8, 1);
+  return tex;
+}
+
 function getBounceWorldCoords(length: BowlingLength, line: BowlingLine): { x: number; z: number } {
-  // Off is -x (for RHB), Middle is 0, Leg is +x
   const x = line === "Off" ? -0.58 : line === "Middle" ? 0 : 0.56;
-  // Bowler stumps z = -10, Batter stumps z = +10
   const z =
-    length === "Short"
-      ? 1.6
-      : length === "Good"
-      ? 4.8
-      : length === "Full"
-      ? 7.4
-      : 9.2;
+    length === "Short" ? 1.6 : length === "Good" ? 4.8 : length === "Full" ? 7.4 : 9.2;
   return { x, z };
 }
 
@@ -258,12 +321,15 @@ function mapWorldPitchToTarget(x: number, z: number): { length: BowlingLength; l
   return { length, line };
 }
 
-function getShotSwingDir(shot: ShotType, line: BowlingLine): { dirX: number; dirZ: number } {
+function getShotSwingDir(shot: ShotType, line: BowlingLine, aimAngleDeg?: number): { dirX: number; dirZ: number } {
+  if (typeof aimAngleDeg === "number" && Number.isFinite(aimAngleDeg)) {
+    const rad = (aimAngleDeg * Math.PI) / 180;
+    return { dirX: Math.sin(rad), dirZ: -Math.cos(rad) };
+  }
   if (shot === "Defend") return { dirX: 0.1, dirZ: -1 };
   if (shot === "Rotate") return { dirX: line === "Off" ? -0.7 : 0.7, dirZ: -0.7 };
   if (shot === "Drive") return { dirX: -0.55, dirZ: -0.85 };
   if (shot === "Loft") return { dirX: 0.2, dirZ: -0.98 };
-  // Slog
   return { dirX: 0.75, dirZ: -0.66 };
 }
 
@@ -275,12 +341,15 @@ export function StadiumCanvas({
   isBowlingCamera = false,
   selectedLength,
   selectedLine,
+  batterShiftX = 0,
+  shotAimAngleDeg = -25,
+  showShotAimCone = false,
+  bowlerJerseyNumber = 19,
   onPickTarget,
   animation,
 }: StadiumCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
 
-  // Live reactive refs read by the 60fps WebGL loop without rebuilding scene!
   const propsRef = useRef({
     pitch,
     battingColor,
@@ -289,6 +358,10 @@ export function StadiumCanvas({
     isBowlingCamera,
     selectedLength,
     selectedLine,
+    batterShiftX,
+    shotAimAngleDeg,
+    showShotAimCone,
+    bowlerJerseyNumber,
     onPickTarget,
     animation,
   });
@@ -300,6 +373,10 @@ export function StadiumCanvas({
     isBowlingCamera,
     selectedLength,
     selectedLine,
+    batterShiftX,
+    shotAimAngleDeg,
+    showShotAimCone,
+    bowlerJerseyNumber,
     onPickTarget,
     animation,
   };
@@ -309,7 +386,6 @@ export function StadiumCanvas({
     animStartRef.current = performance.now();
   }, [animation.key, animation.phase]);
 
-  // Keep dynamic references for WebGL raycasting & color updates
   const pitchPlaneRef = useRef<THREE.Mesh | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
 
@@ -328,23 +404,22 @@ export function StadiumCanvas({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060b18);
-    scene.fog = new THREE.FogExp2(0x071024, 0.0042);
+    scene.background = new THREE.Color(0x0b162c);
+    scene.fog = new THREE.FogExp2(0x0d1b38, 0.0034);
 
-    const camera = new THREE.PerspectiveCamera(42, 16 / 9, 0.3, 280);
-    camera.position.set(1.6, 3.8, -19.5);
-    camera.lookAt(0, 1.0, 9.5);
+    const camera = new THREE.PerspectiveCamera(40, 16 / 9, 0.3, 280);
+    camera.position.set(1.3, 3.9, -19.2);
+    camera.lookAt(0, 1.0, 9.2);
     cameraRef.current = camera;
 
-    // Stadium Lighting (Floodlights + Sky Fill)
-    const hemi = new THREE.HemisphereLight(0x93c5fd, 0x064e3b, 0.95);
+    const hemi = new THREE.HemisphereLight(0xcbd5e1, 0x14532d, 1.05);
     scene.add(hemi);
 
-    const mainSun = new THREE.DirectionalLight(0xfffbeb, 1.9);
+    const mainSun = new THREE.DirectionalLight(0xfffbeb, 1.95);
     mainSun.position.set(28, 48, -22);
     mainSun.castShadow = true;
     mainSun.shadow.mapSize.set(1024, 1024);
@@ -360,27 +435,22 @@ export function StadiumCanvas({
     rimLight.position.set(-30, 32, 30);
     scene.add(rimLight);
 
-    // Outfield Grass Bowl with Mowed Alternating Stripes (Procedural Canvas Texture)
+    // Vivid WCC-style Checkered Outfield Grass Texture
     const turfCanvas = document.createElement("canvas");
     turfCanvas.width = 512;
     turfCanvas.height = 512;
     const tCtx = turfCanvas.getContext("2d")!;
-    tCtx.fillStyle = "#15803d";
-    tCtx.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 16; i++) {
-      tCtx.fillStyle = i % 2 === 0 ? "rgba(34, 197, 94, 0.22)" : "rgba(6, 78, 59, 0.22)";
-      tCtx.fillRect(0, i * 32, 512, 32);
-    }
-    for (let j = 0; j < 16; j++) {
-      if (j % 2 === 0) {
-        tCtx.fillStyle = "rgba(16, 185, 129, 0.1)";
-        tCtx.fillRect(j * 32, 0, 32, 512);
+    const sq = 32;
+    for (let r = 0; r < 16; r++) {
+      for (let c = 0; c < 16; c++) {
+        tCtx.fillStyle = (r + c) % 2 === 0 ? "#2f7d22" : "#226118";
+        tCtx.fillRect(c * sq, r * sq, sq, sq);
       }
     }
     const turfTex = new THREE.CanvasTexture(turfCanvas);
     turfTex.wrapS = THREE.RepeatWrapping;
     turfTex.wrapT = THREE.RepeatWrapping;
-    turfTex.repeat.set(3, 3);
+    turfTex.repeat.set(4, 4);
 
     const outfield = new THREE.Mesh(
       new THREE.CircleGeometry(72, 64),
@@ -390,17 +460,17 @@ export function StadiumCanvas({
     outfield.receiveShadow = true;
     scene.add(outfield);
 
-    // Crisp White Boundary Rope + Glowing LED Perimeter Boards
+    // Crisp White Boundary Rope & Perimeter Sponsorship LED Ring
     const boundaryRope = new THREE.Mesh(
-      new THREE.TorusGeometry(64, 0.22, 10, 96),
+      new THREE.TorusGeometry(64, 0.24, 10, 96),
       new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.35 }),
     );
     boundaryRope.rotation.x = Math.PI / 2;
-    boundaryRope.position.y = 0.15;
+    boundaryRope.position.y = 0.16;
     scene.add(boundaryRope);
 
     const ledBoard = new THREE.Mesh(
-      new THREE.CylinderGeometry(67.2, 67.2, 1.35, 64, 1, true),
+      new THREE.CylinderGeometry(67.2, 67.2, 1.4, 64, 1, true),
       new THREE.MeshStandardMaterial({
         color: 0x0f172a,
         emissive: 0x1d4ed8,
@@ -408,10 +478,10 @@ export function StadiumCanvas({
         side: THREE.DoubleSide,
       }),
     );
-    ledBoard.position.y = 0.68;
+    ledBoard.position.y = 0.7;
     scene.add(ledBoard);
 
-    // 30-yard Inner Circle Markers
+    // 30-yard Inner Circle
     const circlePts: THREE.Vector3[] = [];
     for (let i = 0; i <= 64; i++) {
       const a = (i / 64) * Math.PI * 2;
@@ -419,34 +489,34 @@ export function StadiumCanvas({
     }
     const innerRing = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(circlePts),
-      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }),
+      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.65 }),
     );
     scene.add(innerRing);
 
-    // Tiered Stadium Bowl & Crowd Stands
+    // Crowd-Packed Tiered Stadium Stands
+    const crowdTex = makeCrowdTexture();
     for (let tier = 0; tier < 3; tier++) {
-      const rIn = 69 + tier * 5.5;
-      const rOut = rIn + 5.0;
+      const rIn = 69 + tier * 5.8;
+      const rOut = rIn + 5.2;
       const stand = new THREE.Mesh(
-        new THREE.CylinderGeometry(rOut, rIn, 4.2, 48, 1, true),
+        new THREE.CylinderGeometry(rOut, rIn, 4.4, 48, 1, true),
         new THREE.MeshStandardMaterial({
-          color: tier === 0 ? 0x1e293b : tier === 1 ? 0x0f172a : 0x1e1b4b,
+          map: crowdTex,
           side: THREE.DoubleSide,
           roughness: 0.85,
         }),
       );
-      stand.position.y = 2.1 + tier * 3.8;
+      stand.position.y = 2.2 + tier * 4.0;
       scene.add(stand);
     }
 
     // 4 Stadium Floodlight Towers
-    const towerCorners = [
+    [
       [56, 56],
       [-56, 56],
       [56, -56],
       [-56, -56],
-    ];
-    towerCorners.forEach(([tx, tz]) => {
+    ].forEach(([tx, tz]) => {
       const pole = new THREE.Mesh(
         new THREE.CylinderGeometry(0.45, 0.8, 34, 8),
         new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.5 }),
@@ -463,7 +533,7 @@ export function StadiumCanvas({
       scene.add(lightHead);
     });
 
-    // 22-Yard Pitch Strip (3.05m wide × 22.6m long)
+    // 22-Yard Pitch Strip
     const pitchMat = new THREE.MeshStandardMaterial({
       color: pitch === "Green" ? 0xa3b165 : pitch === "Dusty" ? 0xd6b888 : 0xc8b99d,
       roughness: 0.9,
@@ -478,7 +548,7 @@ export function StadiumCanvas({
     // White Popping & Bowling Crease Lines
     const addLine = (wLen: number, x: number, z: number, rotY = 0) => {
       const m = new THREE.Mesh(
-        new THREE.PlaneGeometry(wLen, 0.06),
+        new THREE.PlaneGeometry(wLen, 0.065),
         new THREE.MeshBasicMaterial({ color: 0xffffff }),
       );
       m.rotation.x = -Math.PI / 2;
@@ -486,14 +556,23 @@ export function StadiumCanvas({
       m.position.set(x, 0.032, z);
       scene.add(m);
     };
-    addLine(3.2, 0, 10); // Batter bowling crease
-    addLine(3.6, 0, 8.8); // Batter popping crease
-    addLine(3.2, 0, -10); // Bowler crease
-    addLine(3.6, 0, -8.8); // Bowler popping crease
-    addLine(2.6, -1.32, 9.4, Math.PI / 2); // Off wide/return crease
+    addLine(3.2, 0, 10);
+    addLine(3.6, 0, 8.8);
+    addLine(3.2, 0, -10);
+    addLine(3.6, 0, -8.8);
+    addLine(2.6, -1.32, 9.4, Math.PI / 2);
     addLine(2.6, 1.32, 9.4, Math.PI / 2);
 
-    // 3D Stumps & LED Bails at both ends
+    // Subtle Run-Up Arrow behind Bowler Stumps (like WCC screenshot)
+    const runArrow = new THREE.Mesh(
+      new THREE.ConeGeometry(0.45, 1.1, 3),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 }),
+    );
+    runArrow.rotation.x = Math.PI / 2;
+    runArrow.position.set(0.45, 0.04, -14.2);
+    scene.add(runArrow);
+
+    // 3D Stumps & LED Bails
     const batterStumps = buildStumpsRig();
     batterStumps.group.position.set(0, 0, 10);
     scene.add(batterStumps.group);
@@ -502,78 +581,80 @@ export function StadiumCanvas({
     bowlerStumps.group.position.set(0, 0, -10);
     scene.add(bowlerStumps.group);
 
-    // Glowing Pitch Bounce Target Ring + Swing Curve Preview
+    // Blue/Gold Pitch Bounce Ring (matching WCC screenshot) + Swing Curve
     const targetRing = new THREE.Group();
     const outerTarget = new THREE.Mesh(
-      new THREE.RingGeometry(0.18, 0.28, 24),
-      new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide }),
+      new THREE.RingGeometry(0.22, 0.34, 24),
+      new THREE.MeshBasicMaterial({ color: 0x2563eb, side: THREE.DoubleSide }),
     );
     outerTarget.rotation.x = -Math.PI / 2;
     const innerTarget = new THREE.Mesh(
-      new THREE.CircleGeometry(0.11, 20),
-      new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75 }),
+      new THREE.CircleGeometry(0.16, 20),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 }),
     );
     innerTarget.rotation.x = -Math.PI / 2;
     targetRing.add(outerTarget, innerTarget);
-    targetRing.position.set(0, 0.04, 4.8);
+    targetRing.position.set(0, 0.045, 4.8);
     scene.add(targetRing);
 
     const swingCurveLine = new THREE.Line(
       new THREE.BufferGeometry(),
-      new THREE.LineDashedMaterial({ color: 0xfde047, dashSize: 0.45, gapSize: 0.25, transparent: true, opacity: 0.7 }),
+      new THREE.LineDashedMaterial({ color: 0xfde047, dashSize: 0.45, gapSize: 0.25, transparent: true, opacity: 0.72 }),
     );
     scene.add(swingCurveLine);
 
-    // Pitch Bounce Ripple
+    // Batting Shot Direction Aim Cone on Pitch (Pro-Control UI!)
+    const shotAimCone = new THREE.Mesh(
+      new THREE.CircleGeometry(3.2, 24, -Math.PI / 10, Math.PI / 5),
+      new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }),
+    );
+    shotAimCone.rotation.x = -Math.PI / 2;
+    shotAimCone.position.set(0, 0.042, 9.1);
+    shotAimCone.visible = false;
+    scene.add(shotAimCone);
+
     const rippleMesh = new THREE.Mesh(
-      new THREE.RingGeometry(0.12, 0.2, 24),
+      new THREE.RingGeometry(0.14, 0.24, 24),
       new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, side: THREE.DoubleSide }),
     );
     rippleMesh.rotation.x = -Math.PI / 2;
     rippleMesh.position.y = 0.045;
     scene.add(rippleMesh);
 
-    // Articulated Players: Striker, Non-Striker, Bowler, Wicketkeeper, + 9 Fielders!
+    // Articulated Players + Classic Red-Shirt Umpire
     const strikerRig = buildCricketerRig(battingColor, "#fde047", { isBatter: true, hasHelmet: true });
     strikerRig.root.position.set(-0.28, 0, 9.15);
-    strikerRig.root.rotation.y = Math.PI * 0.48; // Side-on stance facing bowler!
+    strikerRig.root.rotation.y = Math.PI * 0.48;
     scene.add(strikerRig.root);
 
     const nonStrikerRig = buildCricketerRig(battingColor, "#fde047", { isBatter: true, hasHelmet: true });
-    nonStrikerRig.root.position.set(1.2, 0, -9.2);
+    nonStrikerRig.root.position.set(1.25, 0, -9.2);
     nonStrikerRig.root.rotation.y = Math.PI;
     scene.add(nonStrikerRig.root);
 
-    const bowlerRig = buildCricketerRig(bowlingColor, "#38bdf8");
-    bowlerRig.root.position.set(0.55, 0, -20);
-    bowlerRig.root.rotation.y = 0; // Facing batter (+z)
+    const bowlerRig = buildCricketerRig(bowlingColor, "#38bdf8", { jerseyNumber: bowlerJerseyNumber });
+    bowlerRig.root.position.set(0.45, 0, -20);
+    bowlerRig.root.rotation.y = 0;
     scene.add(bowlerRig.root);
+
+    const umpireRig = buildCricketerRig("#dc2626", "#0f172a", { isUmpire: true });
+    umpireRig.root.position.set(0, 0, -12.6);
+    umpireRig.root.rotation.y = 0;
+    scene.add(umpireRig.root);
 
     const keeperRig = buildCricketerRig(bowlingColor, "#38bdf8", { isKeeper: true, hasHelmet: false });
     keeperRig.root.position.set(0, 0, 13.4);
     keeperRig.root.rotation.y = Math.PI;
     scene.add(keeperRig.root);
 
-    const fielderSpots: Array<[number, number]> = [
-      [-12, 16], // Point
-      [-18, 2], // Cover
-      [-13, -15], // Mid-off
-      [13, -15], // Mid-on
-      [18, 4], // Mid-wicket
-      [12, 17], // Square leg
-      [-34, -22], // Long-off
-      [34, -22], // Long-on
-      [26, 26], // Deep square
-    ];
-    const fielderRigs = fielderSpots.map(([fx, fz]) => {
-      const f = buildCricketerRig(bowlingColor, "#38bdf8");
+    const fielderRigs = FIELDER_SPOTS.map(([fx, fz], idx) => {
+      const f = buildCricketerRig(bowlingColor, "#38bdf8", { jerseyNumber: 4 + idx });
       f.root.position.set(fx, 0, fz);
       f.root.lookAt(0, 0, 9);
       scene.add(f.root);
       return { rig: f, homeX: fx, homeZ: fz };
     });
 
-    // 3D Cricket Ball + Dynamic Ground Shadow + Glowing Shot Tracer
     const ballMesh = new THREE.Mesh(
       new THREE.SphereGeometry(0.11, 16, 14),
       new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3, emissive: 0x334155 }),
@@ -597,7 +678,6 @@ export function StadiumCanvas({
     );
     scene.add(tracerLine);
 
-    // Resize observer
     const updateSize = () => {
       const w = container.clientWidth || 640;
       const h = container.clientHeight || 360;
@@ -618,6 +698,9 @@ export function StadiumCanvas({
         isBowlingCamera: bowlCam,
         selectedLength: selLen,
         selectedLine: selLine,
+        batterShiftX: shiftX,
+        shotAimAngleDeg: aimDeg,
+        showShotAimCone: showCone,
         animation: anim,
       } = propsRef.current;
 
@@ -626,7 +709,6 @@ export function StadiumCanvas({
       );
 
       const elapsedMs = now - animStartRef.current;
-      // 40ms impact hit-stop freeze around t = 440..480ms during RESOLVING
       const effectiveMs =
         anim.phase === "RESOLVING" && elapsedMs >= 440 && elapsedMs <= 480 ? 440 : elapsedMs;
 
@@ -634,11 +716,12 @@ export function StadiumCanvas({
       const activeLn = anim.phase === "IDLE" ? selLine : anim.activeLine;
       const bounceCoords = getBounceWorldCoords(activeLen, activeLn);
 
-      // Update Glowing Target + Swing/Spin Curve Preview
       targetRing.visible = allowPick || anim.phase !== "IDLE";
-      targetRing.position.set(bounceCoords.x, 0.045, bounceCoords.z);
+      targetRing.position.set(bounceCoords.x, 0.048, bounceCoords.z);
       const pulseScale = 1 + 0.14 * Math.sin(now * 0.006);
       targetRing.scale.set(pulseScale, pulseScale, 1);
+
+      runArrow.visible = allowPick;
 
       if (targetRing.visible) {
         const swingMidX =
@@ -655,14 +738,20 @@ export function StadiumCanvas({
         swingCurveLine.visible = false;
       }
 
-      // Reset stumps & fielders when not resolving
+      // Shot Direction Aim Cone on pitch while batting
+      shotAimCone.visible = showCone && anim.phase !== "RESOLVING";
+      if (shotAimCone.visible) {
+        shotAimCone.position.set(-0.28 + shiftX, 0.042, 9.15);
+        shotAimCone.rotation.z = ((aimDeg - 90) * Math.PI) / 180;
+      }
+
       if (anim.phase !== "RESOLVING") {
         batterStumps.stumps.forEach((s, i) => {
-          s.position.set([-0.11, 0, 0.11][i], 0.36, 0);
+          s.position.set([-0.11, 0, 0.11][i], 0.365, 0);
           s.rotation.set(0, 0, 0);
         });
         batterStumps.bails.forEach((b, i) => {
-          b.position.set([-0.055, 0.055][i], 0.73, 0);
+          b.position.set([-0.055, 0.055][i], 0.74, 0);
           b.rotation.set(0, 0, Math.PI / 2);
         });
         tracerPoints.length = 0;
@@ -670,7 +759,8 @@ export function StadiumCanvas({
         rippleMesh.material.opacity = 0;
       }
 
-      // 1) Striker Batsman Stance / Bat Tap / Shot Swing
+      // Striker position & stance
+      strikerRig.root.position.x = -0.28 + shiftX;
       if (anim.phase === "RESOLVING" && anim.outcome && effectiveMs >= 320) {
         const swingT = Math.min(1, (effectiveMs - 320) / 260);
         const shot = anim.outcome.shotType;
@@ -682,13 +772,11 @@ export function StadiumCanvas({
           strikerRig.rightArm.rotation.x = -1.75 * Math.sin(swingT * Math.PI * 0.85);
           strikerRig.leftArm.rotation.x = -1.45 * Math.sin(swingT * Math.PI * 0.85);
         } else {
-          // Drive / Rotate
           strikerRig.torso.rotation.y = -0.5 * Math.sin(swingT * Math.PI * 0.9);
           strikerRig.rightArm.rotation.x = -1.35 * Math.sin(swingT * Math.PI * 0.9);
           strikerRig.leftArm.rotation.x = -1.1 * Math.sin(swingT * Math.PI * 0.9);
         }
       } else {
-        // Side-on tapping stance at crease
         const tap = Math.sin(now * 0.0055);
         strikerRig.torso.rotation.set(0.14, 0, 0);
         strikerRig.leftLeg.rotation.x = -0.14;
@@ -697,7 +785,6 @@ export function StadiumCanvas({
         strikerRig.leftArm.rotation.set(-0.55 + tap * 0.12, 0, 0.2);
       }
 
-      // 2) Wicketkeeper Crouch -> Rise
       const keeperRise =
         anim.phase === "RESOLVING" && effectiveMs > 380
           ? Math.min(1, (effectiveMs - 380) / 250) * 0.25
@@ -707,7 +794,6 @@ export function StadiumCanvas({
       keeperRig.leftArm.rotation.x = -0.8;
       keeperRig.rightArm.rotation.x = -0.8;
 
-      // 3) Bowler Run-up, Leap, Arm Rotation, Follow-Through
       if (anim.phase === "BOWLING" || anim.phase === "AWAITING_HIT") {
         const runT = Math.min(1, elapsedMs / 650);
         bowlerRig.root.position.set(0.45, Math.sin(runT * Math.PI) * 0.18, -20 + runT * 9.8);
@@ -729,13 +815,12 @@ export function StadiumCanvas({
         bowlerRig.rightArm.rotation.x = 0;
       }
 
-      // 4) 3D Ball Physics + Dynamic Camera Tracking!
       let targetCamPos = bowlCam
         ? new THREE.Vector3(0, 4.4, -27.5)
-        : new THREE.Vector3(1.6, 3.6, -18.5);
+        : new THREE.Vector3(1.3, 3.8, -19.0);
       let targetCamLook = bowlCam
         ? new THREE.Vector3(0, 1.0, 8.5)
-        : new THREE.Vector3(0, 1.1, 9.5);
+        : new THREE.Vector3(0, 1.05, 9.2);
 
       if (anim.phase === "RESOLVING" && anim.outcome) {
         const out = anim.outcome;
@@ -746,10 +831,9 @@ export function StadiumCanvas({
         const t = Math.min(1, effectiveMs / flightDuration);
         const releasePos = new THREE.Vector3(0.45, 2.08, -10.0);
         const bouncePos = new THREE.Vector3(bounceCoords.x, 0.11, bounceCoords.z);
-        const batContactPos = new THREE.Vector3(bounceCoords.x * 0.45, 0.85, 9.2);
+        const batContactPos = new THREE.Vector3(bounceCoords.x * 0.45 + shiftX * 0.4, 0.85, 9.2);
 
         if (t < 0.36) {
-          // Ball from bowler to bounce to bat
           const u = t / 0.36;
           if (u < 0.65) {
             const p = u / 0.65;
@@ -767,24 +851,22 @@ export function StadiumCanvas({
             rippleMesh.material.opacity = 0.8 * (1 - p);
           }
         } else {
-          // Post-impact: either BOWLED/RUN OUT/WICKET or Shot Trajectory to Outfield!
           const u = (t - 0.36) / 0.64;
           if (
             out.isWicket &&
             (out.wicketKind === "BOWLED" || out.wicketKind === "LBW" || out.wicketKind === "RUN_OUT")
           ) {
             ballMesh.position.lerpVectors(batContactPos, new THREE.Vector3(0.05, 0.48, 10.6), Math.min(1, u * 2.2));
-            // Uproot stumps & spin bails!
             const wt = Math.min(1, u * 1.8);
             batterStumps.stumps[1].rotation.x = wt * 1.25;
             batterStumps.stumps[1].position.z = wt * 0.45;
             batterStumps.stumps[2].rotation.z = -wt * 0.75;
             batterStumps.bails.forEach((b, i) => {
-              b.position.set((i === 0 ? -0.3 : 0.3) * wt, 0.73 + Math.sin(wt * Math.PI) * 1.4, wt * 0.9);
+              b.position.set((i === 0 ? -0.3 : 0.3) * wt, 0.74 + Math.sin(wt * Math.PI) * 1.4, wt * 0.9);
               b.rotation.y = wt * 8;
             });
           } else {
-            const { dirX, dirZ } = getShotSwingDir(out.shotType, out.line);
+            const { dirX, dirZ } = getShotSwingDir(out.shotType, out.line, showCone ? aimDeg : undefined);
             const distMeters =
               out.runs === 6
                 ? 68
@@ -811,7 +893,6 @@ export function StadiumCanvas({
               tracerLine.geometry.setFromPoints(tracerPoints);
             }
 
-            // Dynamic Shot Tracking Camera!
             if (out.runs >= 1) {
               targetCamPos = new THREE.Vector3(
                 ballMesh.position.x * 0.45 + 6,
@@ -821,7 +902,6 @@ export function StadiumCanvas({
               targetCamLook = ballMesh.position.clone();
             }
 
-            // Nearest Fielder Sprint & Dive toward ball!
             let nearestIdx = 0;
             let bestDist = Infinity;
             fielderRigs.forEach((fr, idx) => {
@@ -841,7 +921,7 @@ export function StadiumCanvas({
                 fr.rig.leftLeg.rotation.x = runCycle * 0.6;
                 fr.rig.rightLeg.rotation.x = -runCycle * 0.6;
                 if (u > 0.78 && out.runs === 4) {
-                  fr.rig.root.rotation.x = 0.65; // Dive attempt near rope!
+                  fr.rig.root.rotation.x = 0.65;
                 }
               } else {
                 fr.rig.root.position.set(fr.homeX, 0, fr.homeZ);
@@ -865,7 +945,6 @@ export function StadiumCanvas({
         });
       }
 
-      // Smooth Broadcast Camera Interpolation
       camera.position.lerp(targetCamPos, 0.12);
       camera.lookAt(targetCamLook);
 
@@ -883,9 +962,8 @@ export function StadiumCanvas({
         container.removeChild(renderer.domElement);
       }
     };
-  }, [battingColor, bowlingColor]);
+  }, [battingColor, bowlingColor, bowlerJerseyNumber]);
 
-  // Direct 3D Pitch Surface Raycasting for interactive bounce target placement
   const handlePitchPointer = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!canPickTarget || !mountRef.current || !cameraRef.current || !pitchPlaneRef.current) return;
     const rect = mountRef.current.getBoundingClientRect();
@@ -903,10 +981,8 @@ export function StadiumCanvas({
     }
   };
 
-  const speed = animation.outcome?.ballSpeedKmh ?? animation.speedPreviewKmh;
-
   return (
-    <div className="relative w-full h-full min-h-[220px] sm:min-h-[290px] rounded-2xl overflow-hidden border border-white/15 bg-[#060B18] preserve-dark shadow-2xl">
+    <div className="relative w-full h-full bg-[#0b162c] preserve-dark">
       <div
         ref={mountRef}
         onPointerDown={handlePitchPointer}
@@ -915,59 +991,6 @@ export function StadiumCanvas({
         }}
         className={`w-full h-full ${canPickTarget ? "cursor-crosshair" : "cursor-default"}`}
       />
-
-      {/* Camera View & Pitch Badge Top-Right */}
-      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 pointer-events-none">
-        <span className="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-white/15 text-[10px] font-black uppercase tracking-wider text-slate-200">
-          {isBowlingCamera ? "🎥 Bowler Cam" : "🎥 Broadcast Cam"}
-        </span>
-        {speed && (
-          <span className="px-2.5 py-1 rounded-lg bg-slate-950/85 border border-amber-400/55 text-[11px] font-black text-amber-300 tnum shadow">
-            {speed} km/h
-          </span>
-        )}
-      </div>
-
-      {/* Bowling Pitch Target Quick Selector (Overlays smoothly top-left when bowling) */}
-      {canPickTarget && (
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 bg-slate-950/85 backdrop-blur-md border border-amber-400/40 rounded-xl p-1.5 text-[10px]">
-          <div className="font-black uppercase tracking-wider text-amber-300 px-1">
-            Tap 3D Pitch ({selectedLength} • {selectedLine})
-          </div>
-          <div className="flex gap-1">
-            {LENGTHS.map((len) => (
-              <button
-                key={len}
-                type="button"
-                onClick={() => onPickTarget(len, selectedLine)}
-                className={`px-2 py-0.5 rounded font-bold cursor-pointer ${
-                  selectedLength === len
-                    ? "bg-amber-400 text-slate-950"
-                    : "bg-slate-800 text-slate-200"
-                }`}
-              >
-                {len}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-1">
-            {LINES.map((ln) => (
-              <button
-                key={ln}
-                type="button"
-                onClick={() => onPickTarget(selectedLength, ln)}
-                className={`flex-1 px-2 py-0.5 rounded font-bold cursor-pointer ${
-                  selectedLine === ln
-                    ? "bg-sky-400 text-slate-950"
-                    : "bg-slate-800 text-slate-200"
-                }`}
-              >
-                {ln}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
