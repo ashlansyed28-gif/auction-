@@ -229,3 +229,34 @@ test("Direct Throw, Caught Meter, and Umpire Callout evaluate accurately and res
   }
   assert.ok(match.innings1.ballLog.length >= 6);
 });
+
+test("2–6 overs selection wires cleanly into total legal balls and innings transitions", () => {
+  const teamA = makeLineup(0, rosterPlayers.slice(0, 4));
+  const teamB = makeLineup(1, rosterPlayers.slice(4, 8));
+
+  for (const overs of [2, 3, 4, 5, 6]) {
+    let m = createMatchState(
+      `overs-${overs}`,
+      teamA,
+      teamB,
+      { seed: 777 + overs, pitch: "Dusty", wicketRule: "LAST_MAN_STANDS", oversPerInnings: overs },
+      teamA.teamId,
+      "BAT",
+    );
+    assert.equal(m.innings1.maxOvers, overs);
+    let safety = 0;
+    while (m.phase === "INNINGS_1" && safety < 120) {
+      m = resolveDelivery(m, {
+        length: "Good",
+        line: "Off",
+        releaseAccuracy: 0.9,
+        shotType: "Drive",
+        timing: 0.85,
+      }).match;
+      safety += 1;
+    }
+    assert.equal(m.phase, "INNINGS_BREAK");
+    assert.ok(m.innings1.legalBalls <= overs * 6);
+    assert.equal(m.innings2?.maxOvers, overs);
+  }
+});

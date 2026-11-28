@@ -11,6 +11,7 @@ import type {
 } from "../../engine/matchEngine";
 import {
   chooseBotDelivery,
+  createMatchState,
   formatOvers,
   getActiveInnings,
   getEligibleBowlers,
@@ -186,6 +187,7 @@ export function BroadcastMatchView({
   const animTimeoutRef = useRef<number | null>(null);
   const throwTimeoutRef = useRef<number | null>(null);
   const umpireTimeoutRef = useRef<number | null>(null);
+  const stingerTimeoutRef = useRef<number | null>(null);
 
   const clearDeliveryAnimTimers = useCallback(() => {
     if (animTimeoutRef.current !== null) {
@@ -200,6 +202,10 @@ export function BroadcastMatchView({
       window.clearTimeout(umpireTimeoutRef.current);
       umpireTimeoutRef.current = null;
     }
+    if (stingerTimeoutRef.current !== null) {
+      window.clearTimeout(stingerTimeoutRef.current);
+      stingerTimeoutRef.current = null;
+    }
   }, []);
 
   const applyIdleReset = useCallback((len: BowlingLength, ln: BowlingLine) => {
@@ -210,6 +216,7 @@ export function BroadcastMatchView({
     setMeterFeedback(reset.meterFeedback);
     setPendingFielding(reset.pendingFielding);
     setUmpireCallout(reset.umpireCallout);
+    setStinger(null);
     setMeterPos(reset.meterPos);
     setAnimation(reset.animation);
     setPhaseGate(reset.phaseGate);
@@ -217,6 +224,11 @@ export function BroadcastMatchView({
 
   const triggerUmpirePostBall = useCallback(
     (finalOutcome: BallOutcome, activeLen: BowlingLength, activeLn: BowlingLine) => {
+      if (stingerTimeoutRef.current !== null) {
+        window.clearTimeout(stingerTimeoutRef.current);
+        stingerTimeoutRef.current = null;
+      }
+      setStinger(null);
       const spec = getUmpireCalloutSpec(finalOutcome);
       setUmpireCallout(spec);
       setPhaseGate("UMPIRE_CALL");
@@ -241,11 +253,15 @@ export function BroadcastMatchView({
 
   const showStinger = useCallback(
     (kind: StingerBanner["kind"], title: string, subtitle: string) => {
+      if (stingerTimeoutRef.current !== null) {
+        window.clearTimeout(stingerTimeoutRef.current);
+      }
       const id = stingerSeq.current++;
       setStinger({ id, kind, title, subtitle });
-      setTimeout(() => {
+      stingerTimeoutRef.current = window.setTimeout(() => {
         setStinger((cur) => (cur?.id === id ? null : cur));
-      }, 1250);
+        stingerTimeoutRef.current = null;
+      }, 1150);
     },
     [],
   );
@@ -436,8 +452,18 @@ export function BroadcastMatchView({
         showStinger("SIX", `SIX DISTANCE : ${outcome.shotDistanceM ?? 88}m`, outcome.batterName);
       } else if (outcome.runs === 4) {
         showStinger("FOUR", "CRACKING FOUR!", `${outcome.batterName} • ${outcome.shotType}`);
-      } else if (outcome.isFreeHitNext) {
-        showStinger("FREE_HIT", "NO BALL • FREE HIT!", "Next delivery is a Free Hit");
+      } else if (outcome.extraType === "NO_BALL") {
+        showStinger(
+          "FREE_HIT",
+          "NO BALL • FREE HIT!",
+          `+${outcome.totalBallRuns} run${outcome.totalBallRuns === 1 ? "" : "s"} • Free Hit next ball`,
+        );
+      } else if (outcome.extraType === "WIDE") {
+        showStinger(
+          "FREE_HIT",
+          "WIDE BALL (+1)",
+          outcome.isFreeHitNext ? "Free Hit remains active" : outcome.batterName,
+        );
       }
 
       const resolveDurationMs = options?.fromFielding ? 980 : 1480;
@@ -1111,28 +1137,14 @@ export function BroadcastMatchView({
         )}
       </div>
 
-      {/* TOP-CENTER AUTO-LAUNCH COUNTDOWN, METER FEEDBACK, DIRECT THROW & UMPIRE CALLOUT */}
-      {(autoLaunchLabel !== null && autoLaunchSec !== null) ||
-      directThrowNotice ||
+      {/* TOP-CENTER SINGLE-SLOT STATUS CALLOUT (prevents overlapping banners) */}
+      {(phaseGate === "UMPIRE_CALL" && umpireCallout) ||
+      stinger ||
       meterFeedback ||
-      (phaseGate === "UMPIRE_CALL" && umpireCallout) ? (
-        <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 pointer-events-none">
-          {autoLaunchLabel !== null && autoLaunchSec !== null && (
-            <div className="px-3 py-0.5 rounded-full bg-slate-950/80 border border-amber-400/50 text-[10px] font-black tracking-wider text-amber-300 shadow-lg tnum">
-              ⏱ {autoLaunchLabel}: {autoLaunchSec}s
-            </div>
-          )}
-          {meterFeedback && (
-            <div className="px-3.5 py-0.5 rounded-full bg-slate-950/90 border border-emerald-400/70 text-[10px] font-black tracking-wider text-emerald-300 shadow-lg">
-              {meterFeedback}
-            </div>
-          )}
-          {directThrowNotice && phaseGate === "ANIMATING" && (
-            <div className="px-3.5 py-0.5 rounded-full bg-amber-400 text-slate-950 border border-white text-[10px] font-black tracking-widest uppercase shadow-xl animate-pulse">
-              ⚡ DIRECT THROW TO {throwTargetEnd === "NON_STRIKER" ? "NON-STRIKER" : "STRIKER"} STUMPS
-            </div>
-          )}
-          {phaseGate === "UMPIRE_CALL" && umpireCallout && (
+      (directThrowNotice && phaseGate === "ANIMATING") ||
+      (autoLaunchLabel !== null && autoLaunchSec !== null) ? (
+        <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center pointer-events-none px-4">
+          {phaseGate === "UMPIRE_CALL" && umpireCallout ? (
             <div
               className={`px-5 py-1.5 rounded-2xl border-2 backdrop-blur-md shadow-2xl text-center ${
                 umpireCallout.isWicket
@@ -1156,7 +1168,37 @@ export function BroadcastMatchView({
               </div>
               <div className="text-[10px] font-bold text-slate-200">{umpireCallout.detail}</div>
             </div>
-          )}
+          ) : stinger ? (
+            <div
+              className={`px-5 py-1.5 rounded-2xl border-2 backdrop-blur-md shadow-2xl text-center preserve-dark ${
+                stinger.kind === "WICKET"
+                  ? "bg-rose-950/95 border-rose-400 text-white"
+                  : stinger.kind === "SIX"
+                  ? "bg-amber-950/95 border-amber-300 text-amber-200"
+                  : stinger.kind === "FOUR"
+                  ? "bg-sky-950/95 border-sky-400 text-sky-200"
+                  : "bg-slate-950/95 border-emerald-400 text-emerald-200"
+              }`}
+            >
+              <div className="text-sm sm:text-lg font-black tracking-widest uppercase">
+                {stinger.kind === "WICKET" && "🏏💥 "}
+                {stinger.title}
+              </div>
+              <div className="text-[11px] font-bold text-slate-200">{stinger.subtitle}</div>
+            </div>
+          ) : meterFeedback ? (
+            <div className="px-4 py-1 rounded-full bg-slate-950/90 border border-emerald-400/70 text-[11px] font-black tracking-wider text-emerald-300 shadow-lg">
+              {meterFeedback}
+            </div>
+          ) : directThrowNotice && phaseGate === "ANIMATING" ? (
+            <div className="px-3.5 py-0.5 rounded-full bg-amber-400 text-slate-950 border border-white text-[10px] font-black tracking-widest uppercase shadow-xl animate-pulse">
+              ⚡ DIRECT THROW TO {throwTargetEnd === "NON_STRIKER" ? "NON-STRIKER" : "STRIKER"} STUMPS
+            </div>
+          ) : autoLaunchLabel !== null && autoLaunchSec !== null ? (
+            <div className="px-3 py-0.5 rounded-full bg-slate-950/80 border border-amber-400/50 text-[10px] font-black tracking-wider text-amber-300 shadow-lg tnum">
+              ⏱ {autoLaunchLabel}: {autoLaunchSec}s
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -1551,29 +1593,6 @@ export function BroadcastMatchView({
         </div>
       )}
 
-      {/* KINETIC TV STINGERS */}
-      {stinger && (
-        <div className="absolute inset-x-0 top-16 flex justify-center pointer-events-none z-30 px-4">
-          <div
-            className={`px-6 py-2.5 rounded-2xl border-2 backdrop-blur-md shadow-2xl text-center preserve-dark ${
-              stinger.kind === "WICKET"
-                ? "bg-rose-950/95 border-rose-400 text-white"
-                : stinger.kind === "SIX"
-                ? "bg-amber-950/95 border-amber-300 text-amber-200"
-                : stinger.kind === "FOUR"
-                ? "bg-sky-950/95 border-sky-400 text-sky-200"
-                : "bg-slate-950/95 border-emerald-400 text-emerald-200"
-            }`}
-          >
-            <div className="text-lg sm:text-2xl font-black tracking-widest uppercase">
-              {stinger.kind === "WICKET" && "🏏💥 "}
-              {stinger.title}
-            </div>
-            <div className="text-xs font-bold text-slate-200">{stinger.subtitle}</div>
-          </div>
-        </div>
-      )}
-
       {/* INNINGS BREAK & MATCH COMPLETE MODALS */}
       {match.phase === "INNINGS_BREAK" && (
         <div className="absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
@@ -1587,7 +1606,7 @@ export function BroadcastMatchView({
               ({formatOvers(match.innings1.legalBalls)})
             </div>
             <div className="text-sm font-bold text-emerald-300">
-              Target to Win: {match.innings1.runs + 1} runs in 6.0 overs
+              Target to Win: {match.innings1.runs + 1} runs in {match.innings1.maxOvers}.0 overs
             </div>
             <button
               type="button"
@@ -1809,6 +1828,44 @@ export function BroadcastMatchView({
                 >
                   🎥 Batting Cam: {battingCameraMode === "BATSMAN_END" ? "Batsman End (Pro)" : "Bowler End"}
                 </button>
+                {controlMode !== "ONLINE_FRIEND" && (
+                  <div className="p-3 rounded-xl bg-slate-950 border border-amber-400/35 space-y-1.5">
+                    <div className="text-[10px] font-black uppercase text-amber-300">
+                      Restart With Overs ({match.config.oversPerInnings ?? 6} Ov Active)
+                    </div>
+                    <div className="grid grid-cols-5 gap-1">
+                      {([2, 3, 4, 5, 6] as const).map((ov) => (
+                        <button
+                          key={ov}
+                          type="button"
+                          onClick={() => {
+                            clearDeliveryAnimTimers();
+                            prevStrikerIdRef.current = null;
+                            const resetMatch = createMatchState(
+                              `match_${Date.now()}`,
+                              match.teamA,
+                              match.teamB,
+                              { ...match.config, seed: Date.now(), oversPerInnings: ov },
+                              match.tossWinnerId,
+                              match.tossDecision,
+                            );
+                            setMatch(resetMatch);
+                            onMatchStateChange?.(resetMatch);
+                            applyIdleReset(selectedLength, selectedLine);
+                            setDrawer("NONE");
+                          }}
+                          className={`py-1.5 rounded-lg font-black border cursor-pointer tnum ${
+                            (match.config.oversPerInnings ?? 6) === ov
+                              ? "bg-amber-400 text-slate-950 border-white"
+                              : "bg-slate-900 text-slate-200 border-white/15"
+                          }`}
+                        >
+                          {ov}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {controlMode !== "ONLINE_FRIEND" && match.phase !== "COMPLETE" && (
                   <>
                     <button

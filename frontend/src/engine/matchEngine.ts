@@ -249,7 +249,7 @@ export function getEligibleBowlers(
   bowlingLineup: MatchTeamLineup,
   innings: InningsState,
 ): MatchPlayer[] {
-  const maxBallsPerBowler = innings.isSuperOver ? 6 : 12; // max 2 overs per bowler
+  const maxBallsPerBowler = innings.isSuperOver || innings.maxOvers <= 2 ? 6 : 12; // max 1 over in <=2-ov / SO, else 2 overs
   const oversBowled = Math.floor(innings.legalBalls / 6);
   const oversRemaining = innings.maxOvers - oversBowled;
 
@@ -283,7 +283,7 @@ export function selectSmartBowler(
   oversBowled: number,
 ): MatchPlayer {
   const oversRemaining = maxOvers - oversBowled;
-  const maxBalls = maxOvers === 1 ? 6 : 12;
+  const maxBalls = maxOvers <= 2 ? 6 : 12;
 
   const eligible = players.filter((p) => {
     const balls = bowlerStats[p.id]?.legalBalls ?? 0;
@@ -414,9 +414,11 @@ export function resolveDelivery(
   const effectiveTiming = clamp(rawTiming + repeatLengthBonus + poorReleaseHelp + batterTimingSkillBonus, 0, 1);
   const timingGrade = input.timingGrade ?? gradeTiming(rawTiming);
 
-  // Wide / No-Ball check from releaseAccuracy & line
-  const wideRisk = 0.015 + Math.max(0, (0.68 - releaseAccuracy) * 0.24) + (input.line === "Leg" ? 0.015 : 0);
-  const noBallRisk = 0.01 + Math.max(0, (0.55 - releaseAccuracy) * 0.14) + (input.length === "Yorker" && releaseAccuracy < 0.6 ? 0.025 : 0);
+  // Wide / No-Ball check from releaseAccuracy & line (capped so no-balls never spam back-to-back)
+  const wideRisk = 0.01 + Math.max(0, (0.55 - releaseAccuracy) * 0.12) + (input.line === "Leg" ? 0.01 : 0);
+  const noBallRisk = active.isFreeHit
+    ? 0
+    : 0.008 + Math.max(0, (0.48 - releaseAccuracy) * 0.08) + (input.length === "Yorker" && releaseAccuracy < 0.5 ? 0.012 : 0);
   const rExtra = rand();
 
   let extraType: "NONE" | "WIDE" | "NO_BALL" = "NONE";

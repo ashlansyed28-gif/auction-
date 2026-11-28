@@ -23,6 +23,7 @@ export interface OnlineQuickMatchSnapshot {
   guestName: string | null;
   pitch: PitchCondition;
   wicketRule: WicketRule;
+  oversPerInnings?: number;
   stage: "WAITING" | "PREGAME" | "LIVE" | "COMPLETE";
   match: MatchState | null;
   pendingBowl: {

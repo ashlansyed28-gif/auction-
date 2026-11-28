@@ -25,6 +25,7 @@ interface QuickMatchSetupProps {
     lineupA: MatchTeamLineup,
     pitch: PitchCondition,
     wicketRule: WicketRule,
+    oversPerInnings: number,
   ) => void;
   onJoinOnlineMatchRoom: (code: string, lineupB: MatchTeamLineup) => void;
   onLaunchOfflineMatch: (opts: {
@@ -33,6 +34,7 @@ interface QuickMatchSetupProps {
     teamB: MatchTeamLineup;
     pitch: PitchCondition;
     wicketRule: WicketRule;
+    oversPerInnings: number;
     botDifficulty: BotDifficulty;
   }) => void;
   onStartOnlinePreGame: () => void;
@@ -73,6 +75,7 @@ export function QuickMatchSetup({
   const [kitBIdx, setKitBIdx] = useState(1);
   const [pitch, setPitch] = useState<PitchCondition>("Dusty");
   const [wicketRule, setWicketRule] = useState<WicketRule>("LAST_MAN_STANDS");
+  const [oversPerInnings, setOversPerInnings] = useState<number>(5);
   const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>("Medium");
   const [joinInput, setJoinInput] = useState("");
   const [draftSeed, setDraftSeed] = useState(0);
@@ -171,7 +174,7 @@ export function QuickMatchSetup({
       </header>
 
       {/* Match Settings Strip */}
-      <section className="rounded-2xl bg-slate-900/90 border border-white/15 p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+      <section className="rounded-2xl bg-slate-900/90 border border-white/15 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
         <div>
           <div className="text-[10px] font-black uppercase text-slate-400 mb-1.5">Stadium Pitch</div>
           <div className="grid grid-cols-3 gap-1.5">
@@ -185,6 +188,26 @@ export function QuickMatchSetup({
                 }`}
               >
                 {pt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-[10px] font-black uppercase text-slate-400 mb-1.5">Match Overs</div>
+          <div className="grid grid-cols-5 gap-1">
+            {([2, 3, 4, 5, 6] as const).map((ov) => (
+              <button
+                key={ov}
+                type="button"
+                onClick={() => setOversPerInnings(ov)}
+                className={`py-1.5 rounded-lg font-black border cursor-pointer tnum ${
+                  oversPerInnings === ov
+                    ? "bg-amber-400 text-slate-950 border-amber-300 shadow"
+                    : "bg-slate-950 text-slate-300 border-white/10 hover:border-amber-300/40"
+                }`}
+              >
+                {ov}
               </button>
             ))}
           </div>
@@ -328,7 +351,7 @@ export function QuickMatchSetup({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
               <button
                 type="button"
-                onClick={() => onCreateOnlineMatchRoom(generateRoomCode(6), lineupA, pitch, wicketRule)}
+                onClick={() => onCreateOnlineMatchRoom(generateRoomCode(6), lineupA, pitch, wicketRule, oversPerInnings)}
                 className="py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider cursor-pointer"
               >
                 ⚡ Create Online Match Room →
@@ -394,6 +417,7 @@ export function QuickMatchSetup({
               teamB: lineupB,
               pitch,
               wicketRule,
+              oversPerInnings,
               botDifficulty,
             })
           }

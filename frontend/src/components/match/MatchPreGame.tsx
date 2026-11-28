@@ -7,11 +7,12 @@ interface MatchPreGameProps {
   teamB: MatchTeamLineup;
   pitch: PitchCondition;
   wicketRule: WicketRule;
+  initialOvers?: number;
   fixtureLabel?: string;
   isTeamABot?: boolean;
   isTeamBBot?: boolean;
   isOnlineGuest?: boolean;
-  onStartMatch: (tossWinnerId: string, tossDecision: "BAT" | "BOWL") => void;
+  onStartMatch: (tossWinnerId: string, tossDecision: "BAT" | "BOWL", oversPerInnings: number) => void;
   onBack: () => void;
 }
 
@@ -26,13 +27,18 @@ export function MatchPreGame({
   teamB,
   pitch,
   wicketRule,
-  fixtureLabel = "4-a-Side • 6 Overs",
+  initialOvers = 5,
+  fixtureLabel,
   isTeamABot = false,
   isTeamBBot = false,
   isOnlineGuest = false,
   onStartMatch,
   onBack,
 }: MatchPreGameProps) {
+  const [oversPerInnings, setOversPerInnings] = useState<number>(
+    [2, 3, 4, 5, 6].includes(initialOvers) ? initialOvers : 5,
+  );
+  const resolvedFixtureLabel = fixtureLabel || `4-a-Side • ${oversPerInnings} Overs`;
   const [coinCall, setCoinCall] = useState<"HEADS" | "TAILS">("HEADS");
   const [flipping, setFlipping] = useState(false);
   const [tossResult, setTossResult] = useState<{
@@ -86,7 +92,7 @@ export function MatchPreGame({
         {/* Split-Panel Broadcast VS Card */}
         <section className="rounded-3xl bg-slate-950/90 border border-amber-400/35 shadow-2xl overflow-hidden">
           <div className="px-4 py-2 bg-slate-900/90 border-b border-white/10 text-center text-[11px] font-black uppercase tracking-[0.25em] text-amber-300">
-            {fixtureLabel} • {PITCH_INFO[pitch]}
+            {resolvedFixtureLabel} • {PITCH_INFO[pitch]}
           </div>
 
           <div className="p-5 sm:p-7 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-6">
@@ -220,9 +226,29 @@ export function MatchPreGame({
                 </div>
               )}
 
+              {!isOnlineGuest && (
+                <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+                  <span className="text-[10px] font-black uppercase text-slate-400 mr-1">Match Overs:</span>
+                  {([2, 3, 4, 5, 6] as const).map((ov) => (
+                    <button
+                      key={ov}
+                      type="button"
+                      onClick={() => setOversPerInnings(ov)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-black border cursor-pointer tnum ${
+                        oversPerInnings === ov
+                          ? "bg-amber-400 text-slate-950 border-white shadow"
+                          : "bg-slate-950 text-slate-300 border-white/15"
+                      }`}
+                    >
+                      {ov} Ov
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <button
                 type="button"
-                onClick={() => onStartMatch(tossResult.winnerId, decision)}
+                onClick={() => onStartMatch(tossResult.winnerId, decision, oversPerInnings)}
                 className="w-full sm:w-auto px-10 py-3.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-sm uppercase tracking-wider cursor-pointer shadow-xl"
               >
                 Take the Field →

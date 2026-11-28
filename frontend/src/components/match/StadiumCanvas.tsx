@@ -663,30 +663,30 @@ export function StadiumCanvas({
     rippleMesh.position.y = 0.045;
     scene.add(rippleMesh);
 
-    // Articulated Players + Classic Red-Shirt Umpire
+    // Articulated Players + Classic Red-Shirt Umpire (aligned cleanly off center-stump sightlines)
     const strikerRig = buildCricketerRig(battingColor, "#fde047", { isBatter: true, hasHelmet: true });
-    strikerRig.root.position.set(-0.32, 0, 9.15);
+    strikerRig.root.position.set(-0.4, 0, 9.15);
     strikerRig.root.rotation.y = Math.PI * 0.52;
     strikerRig.head.rotation.y = Math.PI * 0.44;
     scene.add(strikerRig.root);
 
     const nonStrikerRig = buildCricketerRig(battingColor, "#fde047", { isBatter: true, hasHelmet: true });
-    nonStrikerRig.root.position.set(1.25, 0, -9.2);
-    nonStrikerRig.root.rotation.y = Math.PI;
+    nonStrikerRig.root.position.set(-1.15, 0, -9.15);
+    nonStrikerRig.root.rotation.y = 0;
     scene.add(nonStrikerRig.root);
 
     const bowlerRig = buildCricketerRig(bowlingColor, "#38bdf8", { jerseyNumber: bowlerJerseyNumber });
-    bowlerRig.root.position.set(0.45, 0, -20);
+    bowlerRig.root.position.set(0.62, 0, -20);
     bowlerRig.root.rotation.y = 0;
     scene.add(bowlerRig.root);
 
     const umpireRig = buildCricketerRig("#dc2626", "#0f172a", { isUmpire: true });
-    umpireRig.root.position.set(0, 0, -12.6);
+    umpireRig.root.position.set(-0.22, 0, -11.8);
     umpireRig.root.rotation.y = 0;
     scene.add(umpireRig.root);
 
     const keeperRig = buildCricketerRig(bowlingColor, "#38bdf8", { isKeeper: true, hasHelmet: false });
-    keeperRig.root.position.set(0, 0, 13.4);
+    keeperRig.root.position.set(0, 0, 13.6);
     keeperRig.root.rotation.y = Math.PI;
     scene.add(keeperRig.root);
 
@@ -773,7 +773,7 @@ export function StadiumCanvas({
         const swingMidX =
           bounceCoords.x + (curPitch === "Green" ? -0.45 : curPitch === "Dusty" ? 0.42 : 0.1);
         const curve = new THREE.QuadraticBezierCurve3(
-          new THREE.Vector3(0.42, 2.05, -10.1),
+          new THREE.Vector3(0.62, 2.05, -10.1),
           new THREE.Vector3(swingMidX, 1.1, (bounceCoords.z - 10) * 0.5),
           new THREE.Vector3(bounceCoords.x, 0.08, bounceCoords.z),
         );
@@ -790,7 +790,7 @@ export function StadiumCanvas({
         (anim.phase === "IDLE" || anim.phase === "BOWLING" || anim.phase === "AWAITING_HIT");
       if (shotAimGroup.visible) {
         const coneDir = getShotSwingDir("Drive", activeLn, aimDeg, batCamMode);
-        shotAimGroup.position.set(-0.32 + worldShiftX, 0.044, 9.15);
+        shotAimGroup.position.set(-0.4 + worldShiftX, 0.044, 9.15);
         shotAimGroup.rotation.y = -Math.atan2(coneDir.dirX, -coneDir.dirZ);
       }
 
@@ -846,7 +846,7 @@ export function StadiumCanvas({
       }
 
       // Striker position & stance
-      strikerRig.root.position.x = -0.32 + worldShiftX;
+      strikerRig.root.position.x = -0.4 + worldShiftX;
       if (anim.phase === "RESOLVING" && anim.outcome && effectiveMs >= 320) {
         const swingT = Math.min(1, (effectiveMs - 320) / 260);
         const shot = anim.outcome.shotType;
@@ -882,7 +882,7 @@ export function StadiumCanvas({
 
       if (anim.phase === "BOWLING") {
         const runT = Math.min(1, elapsedMs / 650);
-        bowlerRig.root.position.set(0.45, Math.sin(runT * Math.PI) * 0.18, -20 + runT * 9.8);
+        bowlerRig.root.position.set(0.62, Math.sin(runT * Math.PI) * 0.18, -20 + runT * 9.8);
         const stride = Math.sin(now * 0.022);
         bowlerRig.leftLeg.rotation.x = stride * 0.65;
         bowlerRig.rightLeg.rotation.x = -stride * 0.65;
@@ -890,34 +890,38 @@ export function StadiumCanvas({
         bowlerRig.rightArm.rotation.x = runT > 0.78 ? -(runT - 0.78) * 14 : stride * 0.7;
       } else if (anim.phase === "AWAITING_HIT") {
         const relT = Math.min(1, elapsedMs / 280);
-        bowlerRig.root.position.set(0.45, Math.sin((1 - relT) * Math.PI * 0.4) * 0.12, -10.2 + relT * 1.4);
+        bowlerRig.root.position.set(0.62, Math.sin((1 - relT) * Math.PI * 0.4) * 0.12, -10.2 + relT * 1.4);
         bowlerRig.rightArm.rotation.x = -Math.PI * 1.4 - relT * 0.8;
         bowlerRig.torso.rotation.x = 0.24 * (1 - relT);
       } else if (anim.phase === "RESOLVING") {
         const ft = Math.min(1, effectiveMs / 350);
-        bowlerRig.root.position.set(0.45, 0, -10.2 + ft * 2.4);
+        bowlerRig.root.position.set(0.62, 0, -10.2 + ft * 2.4);
         bowlerRig.rightArm.rotation.x = -Math.PI * 1.4 - ft * 1.2;
         bowlerRig.torso.rotation.x = 0.28 * (1 - ft);
       } else {
-        bowlerRig.root.position.set(0.45, 0, -20);
+        bowlerRig.root.position.set(0.62, 0, -20);
         bowlerRig.leftLeg.rotation.x = 0;
         bowlerRig.rightLeg.rotation.x = 0;
         bowlerRig.leftArm.rotation.x = 0;
         bowlerRig.rightArm.rotation.x = 0;
       }
 
-      let targetCamPos = bowlCam
-        ? new THREE.Vector3(0, 4.4, -27.5)
+      // Stable wide default pitch/stadium broadcast camera (never snaps behind umpire or onto fielders)
+      const defaultCamPos = bowlCam
+        ? new THREE.Vector3(0.75, 4.45, -26.5)
         : batCamMode === "BOWLER_END"
-        ? new THREE.Vector3(1.3, 3.8, -19.0)
-        : new THREE.Vector3(0.95, 2.95, 14.9);
-      let targetCamLook = bowlCam
-        ? new THREE.Vector3(0, 1.0, 8.5)
+        ? new THREE.Vector3(1.1, 4.15, -20.5)
+        : new THREE.Vector3(0.95, 3.35, 15.6);
+      const defaultCamLook = bowlCam
+        ? new THREE.Vector3(0, 0.95, 7.5)
         : batCamMode === "BOWLER_END"
-        ? new THREE.Vector3(0, 1.05, 9.2)
-        : new THREE.Vector3(0, 0.95, -7.5);
+        ? new THREE.Vector3(0, 1.0, 8.8)
+        : new THREE.Vector3(0, 0.95, -5.5);
 
-      const releasePos = new THREE.Vector3(0.45, 2.08, -10.0);
+      let targetCamPos = defaultCamPos.clone();
+      let targetCamLook = defaultCamLook.clone();
+
+      const releasePos = new THREE.Vector3(0.62, 2.08, -10.0);
       const bouncePos = new THREE.Vector3(bounceCoords.x, 0.11, bounceCoords.z);
       const batContactPos = new THREE.Vector3(bounceCoords.x * 0.45 + worldShiftX * 0.4, 0.85, 9.2);
 
@@ -926,7 +930,7 @@ export function StadiumCanvas({
         const runT = Math.min(1, elapsedMs / 650);
         ballMesh.visible = true;
         ballShadow.visible = true;
-        ballMesh.position.set(0.74, 1.35 + runT * 0.68, bowlerRig.root.position.z + 0.18);
+        ballMesh.position.set(0.9, 1.35 + runT * 0.68, bowlerRig.root.position.z + 0.18);
         ballShadow.position.set(ballMesh.position.x, 0.035, ballMesh.position.z);
         ballShadow.scale.setScalar(0.8);
       } else if (anim.phase === "AWAITING_HIT") {
@@ -952,9 +956,9 @@ export function StadiumCanvas({
         ballShadow.position.set(ballMesh.position.x, 0.035, ballMesh.position.z);
         ballShadow.scale.setScalar(Math.max(0.45, 1 - ballMesh.position.y * 0.04));
       } else if (anim.phase === "BALL_CAUGHT_CHANCE") {
-        // Ball pops up / back toward bowler & infielder ready to catch
+        // Ball pops up toward bowler inside the clear wide pitch view (gentle framing)
         const catchU = (elapsedMs % 1100) / 1100;
-        const cPos = new THREE.Vector3(0.45, 1.45, -8.5);
+        const cPos = new THREE.Vector3(0.62, 1.45, -8.5);
         ballMesh.visible = true;
         ballShadow.visible = true;
         ballMesh.position.lerpVectors(batContactPos, cPos, catchU);
@@ -962,13 +966,12 @@ export function StadiumCanvas({
         ballShadow.position.set(ballMesh.position.x, 0.035, ballMesh.position.z);
         ballShadow.scale.setScalar(Math.max(0.45, 1 - ballMesh.position.y * 0.04));
 
-        bowlerRig.root.position.set(0.45, 0, -8.8);
+        bowlerRig.root.position.set(0.62, 0, -8.8);
         bowlerRig.rightArm.rotation.x = -2.15;
         bowlerRig.leftArm.rotation.x = -2.15;
-        targetCamPos = new THREE.Vector3(2.4, 3.6, -15.5);
-        targetCamLook = cPos;
+        targetCamLook.lerp(cPos, 0.25);
       } else if (anim.phase === "AWAITING_THROW" && anim.outcome) {
-        // Ball has reached outfielder — fielder holds/preps Direct Throw toward selected end
+        // Wide elevated stadium frame keeping outfielder, ball, and both stumps cleanly in view
         const out = anim.outcome;
         const { dirX, dirZ } = getShotSwingDir(
           out.shotType,
@@ -1017,12 +1020,17 @@ export function StadiumCanvas({
         ballShadow.scale.setScalar(0.8);
 
         targetCamPos = new THREE.Vector3(
-          ballMesh.position.x * 0.55 + 4,
-          7.5,
-          ballMesh.position.z * 0.55 + (bowlCam ? -10 : 10),
+          ballMesh.position.x * 0.22,
+          9.4,
+          bowlCam ? -22.5 : 22.5,
         );
-        targetCamLook = new THREE.Vector3(0, 0.8, stumpsZ * 0.4);
+        targetCamLook = new THREE.Vector3(
+          ballMesh.position.x * 0.35,
+          0.7,
+          ballMesh.position.z * 0.28,
+        );
       } else if (anim.phase === "UMPIRE_SIGNAL") {
+        // Keep stable wide default pitch view (never cut behind the umpire!)
         ballMesh.visible = false;
         ballShadow.visible = false;
         fielderRigs.forEach((fr) => {
@@ -1032,8 +1040,7 @@ export function StadiumCanvas({
           fr.rig.rightLeg.rotation.x = 0;
           fr.rig.rightArm.rotation.x = 0;
         });
-        targetCamPos = new THREE.Vector3(1.1, 2.55, -17.2);
-        targetCamLook = new THREE.Vector3(0, 1.35, -12.6);
+        targetCamLook.lerp(new THREE.Vector3(-0.22, 1.15, -10.5), 0.35);
       } else if (anim.phase === "RESOLVING" && anim.outcome) {
         const out = anim.outcome;
         ballMesh.visible = true;
@@ -1063,7 +1070,7 @@ export function StadiumCanvas({
           const u = (t - 0.28) / 0.72;
           if (
             out.isWicket &&
-            (out.wicketKind === "BOWLED" || out.wicketKind === "LBW" || out.wicketKind === "RUN_OUT")
+            (out.wicketKind === "BOWLED" || out.wicketKind === "LBW")
           ) {
             ballMesh.position.lerpVectors(batContactPos, new THREE.Vector3(0.05, 0.48, 10.6), Math.min(1, u * 2.2));
             const wt = Math.min(1, u * 1.8);
@@ -1088,7 +1095,7 @@ export function StadiumCanvas({
                 ? 62
                 : out.runs === 2
                 ? 34
-                : out.runs === 1
+                : out.runs === 1 || (out.isWicket && out.wicketKind === "RUN_OUT")
                 ? 24
                 : 7;
             const destX = batContactPos.x + dirX * distMeters;
@@ -1144,25 +1151,16 @@ export function StadiumCanvas({
             }
 
             if (out.runs >= 1 || (out.isWicket && out.wicketKind === "RUN_OUT")) {
-              if (hasDirectThrow && u > 0.65) {
-                const stumpsTarget = new THREE.Vector3(0, 0.85, targetStumpsZ * 0.92);
-                targetCamPos = !bowlCam && batCamMode === "BATSMAN_END"
-                  ? new THREE.Vector3(1.1, 3.2, 15.2)
-                  : new THREE.Vector3(1.3, 3.8, -19.0);
-                targetCamLook = stumpsTarget;
+              if (hasDirectThrow && u > 0.62) {
+                targetCamPos = defaultCamPos.clone();
+                targetCamLook.lerp(new THREE.Vector3(0, 0.8, targetStumpsZ * 0.5), 0.35);
               } else {
-                targetCamPos = !bowlCam && batCamMode === "BATSMAN_END"
-                  ? new THREE.Vector3(
-                      ballMesh.position.x * 0.42 + 4.5,
-                      9.5 + out.runs * 1.1,
-                      Math.max(-18, ballMesh.position.z * 0.45 + 14.5),
-                    )
-                  : new THREE.Vector3(
-                      ballMesh.position.x * 0.45 + 6,
-                      11 + out.runs * 1.2,
-                      ballMesh.position.z * 0.4 - 14,
-                    );
-                targetCamLook = ballMesh.position.clone();
+                targetCamPos = new THREE.Vector3(
+                  defaultCamPos.x + ballMesh.position.x * 0.22,
+                  Math.max(defaultCamPos.y + 3.2, 6.2 + out.runs * 0.5),
+                  bowlCam ? Math.min(-18, -22 + ballMesh.position.z * 0.15) : Math.max(16, 19 + ballMesh.position.z * 0.15),
+                );
+                targetCamLook.lerp(ballMesh.position, 0.45);
               }
             }
 

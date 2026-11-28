@@ -210,6 +210,7 @@ export function App() {
     teamB: MatchTeamLineup;
     pitch: PitchCondition;
     wicketRule: WicketRule;
+    oversPerInnings?: number;
     botDifficulty: BotDifficulty;
     controlMode: MatchControlMode;
     fixtureLabel?: string;
@@ -1068,6 +1069,7 @@ export function App() {
     lineupA: MatchTeamLineup,
     pitch: PitchCondition,
     wicketRule: WicketRule,
+    oversPerInnings = 5,
   ) => {
     teardownQmTransport();
     const transport = createRealtimeTransport(`QM_${code}`);
@@ -1085,11 +1087,13 @@ export function App() {
       guestName: null,
       pitch,
       wicketRule,
+      oversPerInnings,
       stage: "WAITING",
       match: createMatchState(`qm_${code}`, lineupA, lineupA, {
         seed: Date.now(),
         pitch,
         wicketRule,
+        oversPerInnings,
       }),
       pendingBowl: null,
       updatedAt: Date.now(),
@@ -1191,6 +1195,7 @@ export function App() {
             teamB: snap.match.teamB,
             pitch: snap.pitch,
             wicketRule: snap.wicketRule,
+            oversPerInnings: snap.oversPerInnings ?? 5,
             botDifficulty: "Medium",
             controlMode: "ONLINE_FRIEND",
           });
@@ -1554,18 +1559,20 @@ export function App() {
             teamB: qmSnapshot.match.teamB,
             pitch: qmSnapshot.pitch,
             wicketRule: qmSnapshot.wicketRule,
+            oversPerInnings: qmSnapshot.oversPerInnings ?? 5,
             botDifficulty: "Medium",
             controlMode: "ONLINE_FRIEND",
           });
           setScreen("PREGAME");
         }}
-        onLaunchOfflineMatch={({ subMode, teamA, teamB, pitch, wicketRule, botDifficulty }) => {
+        onLaunchOfflineMatch={({ subMode, teamA, teamB, pitch, wicketRule, oversPerInnings, botDifficulty }) => {
           setActiveFixture(null);
           setPendingPreGame({
             teamA,
             teamB,
             pitch,
             wicketRule,
+            oversPerInnings,
             botDifficulty,
             controlMode: subMode === "BOT" ? "VS_BOT" : "PASS_PLAY",
           });
@@ -1590,15 +1597,16 @@ export function App() {
         teamB={pendingPreGame.teamB}
         pitch={pendingPreGame.pitch}
         wicketRule={pendingPreGame.wicketRule}
+        initialOvers={pendingPreGame.oversPerInnings ?? 5}
         fixtureLabel={pendingPreGame.fixtureLabel}
         isTeamBBot={pendingPreGame.controlMode === "VS_BOT"}
         isOnlineGuest={pendingPreGame.controlMode === "ONLINE_FRIEND" && !qmIsHost}
-        onStartMatch={(tossWinnerId, tossDecision) => {
+        onStartMatch={(tossWinnerId, tossDecision, oversPerInnings) => {
           const cfg: MatchConfig = {
             seed: Date.now(),
             pitch: pendingPreGame.pitch,
             wicketRule: pendingPreGame.wicketRule,
-            oversPerInnings: 6,
+            oversPerInnings,
             botDifficulty: pendingPreGame.botDifficulty,
           };
           const m = createMatchState(
