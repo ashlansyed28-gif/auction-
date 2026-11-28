@@ -34,6 +34,7 @@ export const FIELDER_SPOTS: Array<[number, number]> = [
 
 interface StadiumCanvasProps {
   pitch: PitchCondition;
+  isPowerplay?: boolean;
   battingColor: string;
   bowlingColor: string;
   canPickTarget: boolean;
@@ -353,6 +354,7 @@ function getShotSwingDir(
 
 export function StadiumCanvas({
   pitch,
+  isPowerplay = false,
   battingColor,
   bowlingColor,
   canPickTarget,
@@ -371,6 +373,7 @@ export function StadiumCanvas({
 
   const propsRef = useRef({
     pitch,
+    isPowerplay,
     battingColor,
     bowlingColor,
     canPickTarget,
@@ -387,6 +390,7 @@ export function StadiumCanvas({
   });
   propsRef.current = {
     pitch,
+    isPowerplay,
     battingColor,
     bowlingColor,
     canPickTarget,
@@ -482,40 +486,49 @@ export function StadiumCanvas({
     scene.add(outfield);
 
     // Crisp White Boundary Rope & Perimeter Sponsorship LED Ring
+    const boundaryRopeMat = new THREE.MeshStandardMaterial({
+      color: 0xf8fafc,
+      roughness: 0.35,
+      emissive: 0x000000,
+      emissiveIntensity: 0,
+    });
     const boundaryRope = new THREE.Mesh(
       new THREE.TorusGeometry(64, 0.24, 10, 96),
-      new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.35 }),
+      boundaryRopeMat,
     );
     boundaryRope.rotation.x = Math.PI / 2;
     boundaryRope.position.y = 0.16;
     scene.add(boundaryRope);
 
+    const ledBoardMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      emissive: 0x1d4ed8,
+      emissiveIntensity: 0.55,
+      side: THREE.DoubleSide,
+    });
     const ledBoard = new THREE.Mesh(
       new THREE.CylinderGeometry(67.2, 67.2, 1.4, 64, 1, true),
-      new THREE.MeshStandardMaterial({
-        color: 0x0f172a,
-        emissive: 0x1d4ed8,
-        emissiveIntensity: 0.55,
-        side: THREE.DoubleSide,
-      }),
+      ledBoardMat,
     );
     ledBoard.position.y = 0.7;
     scene.add(ledBoard);
 
-    // 30-yard Inner Circle
+    // 30-yard Inner Circle (glows cyan in Powerplay!)
     const circlePts: THREE.Vector3[] = [];
     for (let i = 0; i <= 64; i++) {
       const a = (i / 64) * Math.PI * 2;
       circlePts.push(new THREE.Vector3(Math.cos(a) * 26, 0.04, Math.sin(a) * 28));
     }
+    const innerRingMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.65 });
     const innerRing = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(circlePts),
-      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.65 }),
+      innerRingMat,
     );
     scene.add(innerRing);
 
     // Crowd-Packed Tiered Stadium Stands
     const crowdTex = makeCrowdTexture();
+    const standMeshes: Array<{ mesh: THREE.Mesh; baseY: number }> = [];
     for (let tier = 0; tier < 3; tier++) {
       const rIn = 69 + tier * 5.8;
       const rOut = rIn + 5.2;
@@ -527,8 +540,10 @@ export function StadiumCanvas({
           roughness: 0.85,
         }),
       );
-      stand.position.y = 2.2 + tier * 4.0;
+      const baseY = 2.2 + tier * 4.0;
+      stand.position.y = baseY;
       scene.add(stand);
+      standMeshes.push({ mesh: stand, baseY });
     }
 
     // 4 Stadium Floodlight Towers
@@ -565,6 +580,28 @@ export function StadiumCanvas({
     pitchStrip.receiveShadow = true;
     scene.add(pitchStrip);
     pitchPlaneRef.current = pitchStrip;
+
+    // Subtle Scuff / Footmark Patches for Dusty Pitch Visual Identity
+    const dustyGroup = new THREE.Group();
+    const dustyMat = new THREE.MeshBasicMaterial({
+      color: 0x926f47,
+      transparent: true,
+      opacity: 0.38,
+      depthWrite: false,
+    });
+    [
+      [-0.45, 5.4, 0.55, 1.3],
+      [0.42, 4.2, 0.5, 1.15],
+      [-0.2, 7.2, 0.7, 0.9],
+      [0.35, -7.8, 0.45, 1.2],
+    ].forEach(([dx, dz, sx, sz]) => {
+      const patch = new THREE.Mesh(new THREE.CircleGeometry(0.45, 12), dustyMat);
+      patch.rotation.x = -Math.PI / 2;
+      patch.scale.set(sx, sz, 1);
+      patch.position.set(dx, 0.029, dz);
+      dustyGroup.add(patch);
+    });
+    scene.add(dustyGroup);
 
     // White Popping & Bowling Crease Lines
     const addLine = (wLen: number, x: number, z: number, rotY = 0) => {
@@ -715,11 +752,16 @@ export function StadiumCanvas({
     scene.add(ballShadow);
 
     const tracerPoints: THREE.Vector3[] = [];
-    const tracerLine = new THREE.Line(
-      new THREE.BufferGeometry(),
-      new THREE.LineBasicMaterial({ color: 0xfacc15, linewidth: 2 }),
-    );
+    const tracerMat = new THREE.LineBasicMaterial({ color: 0xfacc15, linewidth: 2 });
+    const tracerLine = new THREE.Line(new THREE.BufferGeometry(), tracerMat);
     scene.add(tracerLine);
+
+    const throwTracerPoints: THREE.Vector3[] = [];
+    const throwTracerLine = new THREE.Line(
+      new THREE.BufferGeometry(),
+      new THREE.LineBasicMaterial({ color: 0xf97316, linewidth: 2 }),
+    );
+    scene.add(throwTracerLine);
 
     const updateSize = () => {
       const w = container.clientWidth || 640;
@@ -737,6 +779,7 @@ export function StadiumCanvas({
     const animate = (now: number) => {
       const {
         pitch: curPitch,
+        isPowerplay: curPowerplay,
         canPickTarget: allowPick,
         isBowlingCamera: bowlCam,
         battingCameraMode: batCamMode,
@@ -751,8 +794,12 @@ export function StadiumCanvas({
       const worldShiftX = !bowlCam && batCamMode === "BOWLER_END" ? -shiftX : shiftX;
 
       pitchMat.color.setHex(
-        curPitch === "Green" ? 0xa3b165 : curPitch === "Dusty" ? 0xd6b888 : 0xc8b99d,
+        curPitch === "Green" ? 0x9cb862 : curPitch === "Dusty" ? 0xd9b37c : 0xdfd3b8,
       );
+      dustyGroup.visible = curPitch === "Dusty";
+
+      innerRingMat.color.setHex(curPowerplay ? 0x38bdf8 : 0xffffff);
+      innerRingMat.opacity = curPowerplay ? 0.88 : 0.55;
 
       const elapsedMs = now - animStartRef.current;
       const effectiveMs =
@@ -811,9 +858,38 @@ export function StadiumCanvas({
           b.position.set([-0.055, 0.055][i], 0.74, 0);
           b.rotation.set(0, 0, Math.PI / 2);
         });
-        tracerPoints.length = 0;
-        tracerLine.geometry.setFromPoints([]);
+        if (anim.phase !== "BALL_CAUGHT_CHANCE") {
+          tracerPoints.length = 0;
+          tracerLine.geometry.setFromPoints([]);
+        }
+        throwTracerPoints.length = 0;
+        throwTracerLine.geometry.setFromPoints([]);
         rippleMesh.material.opacity = 0;
+      }
+
+      // Boundary / Crowd celebration pulse on boundaries & wickets
+      const isBigEvent =
+        anim.phase === "RESOLVING" &&
+        anim.outcome &&
+        (anim.outcome.isWicket || anim.outcome.runs === 6 || anim.outcome.runs === 4);
+      if (isBigEvent && anim.outcome) {
+        const pulse = 0.5 + 0.5 * Math.sin(now * 0.018);
+        const ledHex = anim.outcome.isWicket ? 0xe11d48 : anim.outcome.runs === 6 ? 0xf59e0b : 0x0ea5e9;
+        ledBoardMat.emissive.setHex(ledHex);
+        ledBoardMat.emissiveIntensity = 0.75 + pulse * 0.65;
+        boundaryRopeMat.emissive.setHex(ledHex);
+        boundaryRopeMat.emissiveIntensity = 0.25 + pulse * 0.45;
+        standMeshes.forEach((sm, tier) => {
+          sm.mesh.position.y = sm.baseY + Math.sin(now * 0.015 + tier * 0.9) * 0.22;
+        });
+      } else {
+        ledBoardMat.emissive.setHex(0x1d4ed8);
+        ledBoardMat.emissiveIntensity = 0.55;
+        boundaryRopeMat.emissive.setHex(0x000000);
+        boundaryRopeMat.emissiveIntensity = 0;
+        standMeshes.forEach((sm) => {
+          sm.mesh.position.y = sm.baseY;
+        });
       }
 
       // Red-Shirt Umpire Signals
@@ -956,8 +1032,9 @@ export function StadiumCanvas({
         ballShadow.position.set(ballMesh.position.x, 0.035, ballMesh.position.z);
         ballShadow.scale.setScalar(Math.max(0.45, 1 - ballMesh.position.y * 0.04));
       } else if (anim.phase === "BALL_CAUGHT_CHANCE") {
-        // Ball pops up toward bowler inside the clear wide pitch view (gentle framing)
+        // Ball pops up toward bowler inside the clear wide pitch view (with live catch arc tracer)
         const catchU = (elapsedMs % 1100) / 1100;
+        if (catchU < 0.06) tracerPoints.length = 0;
         const cPos = new THREE.Vector3(0.62, 1.45, -8.5);
         ballMesh.visible = true;
         ballShadow.visible = true;
@@ -965,6 +1042,12 @@ export function StadiumCanvas({
         ballMesh.position.y += Math.sin(catchU * Math.PI) * 3.2;
         ballShadow.position.set(ballMesh.position.x, 0.035, ballMesh.position.z);
         ballShadow.scale.setScalar(Math.max(0.45, 1 - ballMesh.position.y * 0.04));
+
+        tracerMat.color.setHex(0x34d399);
+        if (tracerPoints.length < 36) {
+          tracerPoints.push(ballMesh.position.clone());
+          tracerLine.geometry.setFromPoints(tracerPoints);
+        }
 
         bowlerRig.root.position.set(0.62, 0, -8.8);
         bowlerRig.rightArm.rotation.x = -2.15;
@@ -1145,9 +1228,16 @@ export function StadiumCanvas({
               }
             }
 
+            tracerMat.color.setHex(
+              out.isWicket ? 0xf43f5e : out.runs === 6 ? 0xfacc15 : out.runs === 4 ? 0x38bdf8 : 0xe2e8f0,
+            );
             if (tracerPoints.length < 52 && u <= hitEndU) {
               tracerPoints.push(ballMesh.position.clone());
               tracerLine.geometry.setFromPoints(tracerPoints);
+            }
+            if (hasDirectThrow && u > hitEndU && throwTracerPoints.length < 36) {
+              throwTracerPoints.push(ballMesh.position.clone());
+              throwTracerLine.geometry.setFromPoints(throwTracerPoints);
             }
 
             if (out.runs >= 1 || (out.isWicket && out.wicketKind === "RUN_OUT")) {
@@ -1219,6 +1309,16 @@ export function StadiumCanvas({
       }
 
       camera.position.lerp(targetCamPos, anim.phase === "IDLE" ? 0.2 : 0.14);
+      if (
+        anim.phase === "RESOLVING" &&
+        anim.outcome &&
+        effectiveMs >= 420 &&
+        effectiveMs <= 620 &&
+        (anim.outcome.runs >= 4 || anim.outcome.isWicket)
+      ) {
+        const pulseAmp = anim.outcome.runs === 6 || anim.outcome.isWicket ? 0.12 : 0.07;
+        camera.position.y += Math.sin((effectiveMs - 420) * 0.04) * pulseAmp;
+      }
       camera.lookAt(targetCamLook);
 
       renderer.render(scene, camera);

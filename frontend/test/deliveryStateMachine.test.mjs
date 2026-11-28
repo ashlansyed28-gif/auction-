@@ -11,7 +11,14 @@ import {
   getPostHitInteractionKind,
   getUmpireCalloutSpec,
 } from "../src/components/match/deliveryStateMachine.ts";
-import { createMatchState, resolveDelivery } from "../src/engine/matchEngine.ts";
+import {
+  computeMatchHighlights,
+  createMatchState,
+  resolveDelivery,
+  simulateFullMatch,
+  startSecondInnings,
+} from "../src/engine/matchEngine.ts";
+import { buildLineupsFromAuctionTeams } from "../src/engine/tournamentEngine.ts";
 import { players as rosterPlayers } from "../src/data/roster.ts";
 import { JERSEY_THEMES } from "../src/utils/auctionRules.ts";
 
@@ -259,4 +266,104 @@ test("2–6 overs selection wires cleanly into total legal balls and innings tra
     assert.ok(m.innings1.legalBalls <= overs * 6);
     assert.equal(m.innings2?.maxOvers, overs);
   }
+});
+
+test("custom auction teams/rosters, Super Over tie-breaker, and post-match highlights work end-to-end", () => {
+  // Custom drafted auction teams flow through cleanly
+  const customLineups = buildLineupsFromAuctionTeams(
+    [
+      {
+        id: "custom-alpha",
+        name: "Royal Blazers",
+        kit: JERSEY_THEMES[0],
+        purseRemainingCr: 20,
+        initialPurseCr: 80,
+        connected: true,
+        squad: rosterPlayers.slice(0, 4).map((p) => ({ player: { ...p, role: p.role }, paidCr: 5 })),
+      },
+      {
+        id: "custom-beta",
+        name: "Lightning XI",
+        kit: JERSEY_THEMES[2],
+        purseRemainingCr: 22,
+        initialPurseCr: 80,
+        connected: true,
+        squad: rosterPlayers.slice(4, 8).map((p) => ({ player: { ...p, role: p.role }, paidCr: 4 })),
+      },
+    ],
+    rosterPlayers,
+  );
+  assert.equal(customLineups[0].name, "Royal Blazers");
+  assert.equal(customLineups[1].name, "Lightning XI");
+  assert.equal(customLineups[0].players.length, 4);
+
+  // Full 2-over match simulation + highlights check
+  const m0 = createMatchState(
+    "full-2ov",
+    customLineups[0],
+    customLineups[1],
+    { seed: 4242, pitch: "Dusty", wicketRule: "LAST_MAN_STANDS", oversPerInnings: 2 },
+    customLineups[0].teamId,
+    "BAT",
+  );
+  const completed = simulateFullMatch(m0, "Medium");
+  assert.equal(completed.phase, "COMPLETE");
+  assert.ok(completed.winnerTeamId !== null);
+  const hl = computeMatchHighlights(completed);
+  assert.ok(hl.topScorer !== null);
+  assert.ok(hl.bestBowler !== null);
+
+  // Deterministic search over seed to verify tied 2-over chase enters SUPER_OVER_1 -> SUPER_OVER_2 -> COMPLETE
+  let superOverResult = null;
+  for (let seed = 1; seed <= 30 && !superOverResult; seed += 1) {
+    let base = createMatchState(
+      `so-tie-${seed}`,
+      customLineups[0],
+      customLineups[1],
+      { seed, pitch: "Dead", wicketRule: "THREE_WICKETS_ALL_OUT", oversPerInnings: 2 },
+      customLineups[0].teamId,
+      "BAT",
+    );
+    const broken = createMatchState(
+      `so-b-${seed}`,
+      customLineups[0],
+      customLineups[1],
+      { seed, pitch: "Dead", wicketRule: "THREE_WICKETS_ALL_OUT", oversPerInnings: 2 },
+      customLineups[0].teamId,
+      "BAT",
+    );
+    base = {
+      ...base,
+      phase: "INNINGS_2",
+      innings1: { ...base.innings1, runs: 18, legalBalls: 12, completed: true },
+      innings2: {
+        ...broken.innings1,
+        inningsNumber: 2,
+        battingTeamId: customLineups[1].teamId,
+        bowlingTeamId: customLineups[0].teamId,
+        runs: 18,
+        wickets: 2,
+        legalBalls: 11,
+        targetRuns: 19,
+        completed: false,
+      },
+    };
+    const afterFinalBall = resolveDelivery(base, {
+      length: "Yorker",
+      line: "Middle",
+      releaseAccuracy: 0.99,
+      shotType: "Defend",
+      timing: 0.5,
+    }).match;
+    if (afterFinalBall.phase === "SUPER_OVER_1") {
+      superOverResult = afterFinalBall;
+    }
+  }
+  assert.ok(superOverResult !== null, "Tied 2-over match should enter SUPER_OVER_1");
+  assert.ok(superOverResult.superOver1 !== null);
+  assert.equal(superOverResult.superOver1.maxOvers, 1);
+  const fin = simulateFullMatch(superOverResult, "Medium");
+  assert.equal(fin.phase, "COMPLETE");
+  assert.ok(fin.superOver2 !== null);
+  assert.ok(computeMatchHighlights(fin).topScorer !== null);
 });

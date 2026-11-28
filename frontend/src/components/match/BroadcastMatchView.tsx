@@ -11,6 +11,7 @@ import type {
 } from "../../engine/matchEngine";
 import {
   chooseBotDelivery,
+  computeMatchHighlights,
   createMatchState,
   formatOvers,
   getActiveInnings,
@@ -172,6 +173,7 @@ export function BroadcastMatchView({
   } | null>(null);
   const [isMuted, setIsMuted] = useState(soundEngine.isMuted());
   const [scorebugExpanded, setScorebugExpanded] = useState(true);
+  const [superOverAcked, setSuperOverAcked] = useState<"NONE" | "SO_1" | "SO_2">("NONE");
   const [drawer, setDrawer] = useState<"NONE" | "MENU" | "SCORECARD" | "COMMENTARY" | "POINTS">("NONE");
   const [animation, setAnimation] = useState<DeliveryAnimationState>({
     key: 1,
@@ -840,12 +842,16 @@ export function BroadcastMatchView({
     drawer,
   };
 
+  const needsSuperOverPrompt =
+    (match.phase === "SUPER_OVER_1" && (match.superOver1?.ballLog.length ?? 0) === 0 && superOverAcked === "NONE") ||
+    (match.phase === "SUPER_OVER_2" && (match.superOver2?.ballLog.length ?? 0) === 0 && superOverAcked !== "SO_2");
+
   // 6-Second Auto-Launch Timer (Bowling, Batting, Direct Throw & Caught Meters) + Clean Cancellation
   useEffect(() => {
     const spec = getAutoLaunchSpec({
       hasActiveInnings: Boolean(active),
       watchAiMode,
-      drawerOpen: drawer !== "NONE",
+      drawerOpen: drawer !== "NONE" || needsSuperOverPrompt,
       matchPhase: match.phase,
       phaseGate,
       isBowlerMode,
@@ -957,9 +963,56 @@ export function BroadcastMatchView({
     if (!active || active.targetRuns === null) return null;
     const needed = Math.max(0, active.targetRuns - active.runs);
     const ballsLeft = Math.max(1, active.maxOvers * 6 - active.legalBalls);
-    const rrr = ((needed / ballsLeft) * 6).toFixed(2);
-    return { needed, ballsLeft, rrr };
+    const rrrNum = (needed / ballsLeft) * 6;
+    const rrr = rrrNum.toFixed(2);
+    const pressureLevel = rrrNum > 12 || (ballsLeft <= 6 && needed >= 8) ? "HIGH" : rrrNum > 8.5 ? "MED" : "CALM";
+    return { needed, ballsLeft, rrr, pressureLevel };
   }, [active]);
+
+  const isPowerplay = Boolean(
+    active && !active.isSuperOver && Math.floor(active.legalBalls / 6) < Math.min(2, active.maxOvers),
+  );
+
+  const highlights = useMemo(
+    () => (match.phase === "COMPLETE" ? computeMatchHighlights(match) : null),
+    [match],
+  );
+
+  const handleQuickRematch = useCallback(
+    (oversOverride?: number) => {
+      clearDeliveryAnimTimers();
+      prevStrikerIdRef.current = null;
+      setSuperOverAcked("NONE");
+      const fresh = createMatchState(
+        `match_${Date.now()}`,
+        match.teamA,
+        match.teamB,
+        {
+          ...match.config,
+          seed: Date.now(),
+          oversPerInnings: oversOverride ?? match.config.oversPerInnings ?? 5,
+        },
+        match.tossWinnerId,
+        match.tossDecision,
+      );
+      setMatch(fresh);
+      onMatchStateChange?.(fresh);
+      applyIdleReset(selectedLength, selectedLine);
+      setDrawer("NONE");
+    },
+    [
+      clearDeliveryAnimTimers,
+      match.teamA,
+      match.teamB,
+      match.config,
+      match.tossWinnerId,
+      match.tossDecision,
+      onMatchStateChange,
+      applyIdleReset,
+      selectedLength,
+      selectedLine,
+    ],
+  );
 
   const inSweetSpot = meterPos >= 0.36 && meterPos <= 0.64;
 
@@ -969,6 +1022,7 @@ export function BroadcastMatchView({
       <div className="absolute inset-0">
         <StadiumCanvas
           pitch={match.config.pitch}
+          isPowerplay={isPowerplay}
           battingColor={battingLineup.kit.primary}
           bowlingColor={bowlingLineup.kit.primary}
           canPickTarget={Boolean(isBowlerMode && (phaseGate === "READY" || phaseGate === "BOWL_METER"))}
@@ -1032,18 +1086,43 @@ export function BroadcastMatchView({
           <circle cx="50" cy="63" r="2.2" fill="#38bdf8" />
         </svg>
 
-        <div className="hidden sm:flex flex-col gap-1 pt-1">
-          <span className="px-2 py-0.5 rounded bg-slate-950/75 border border-white/15 text-[10px] font-black uppercase text-emerald-300">
+        <div className="flex flex-col gap-1 pt-0.5">
+          <span
+            className={`px-2 py-0.5 rounded border text-[9px] sm:text-[10px] font-black uppercase ${
+              match.config.pitch === "Dusty"
+                ? "bg-amber-950/85 border-amber-400/50 text-amber-300"
+                : match.config.pitch === "Green"
+                ? "bg-emerald-950/85 border-emerald-400/50 text-emerald-300"
+                : "bg-slate-950/80 border-white/20 text-slate-200"
+            }`}
+          >
             {match.config.pitch} Pitch
           </span>
+          {active?.isSuperOver ? (
+            <span className="px-2 py-0.5 rounded bg-rose-600/90 border border-white/40 text-white text-[9px] font-black animate-pulse">
+              ⚡ SUPER OVER
+            </span>
+          ) : isPowerplay ? (
+            <span className="px-2 py-0.5 rounded bg-sky-500/85 border border-sky-200/40 text-white text-[9px] font-black">
+              ⚡ POWERPLAY
+            </span>
+          ) : null}
           {active?.isFreeHit && (
             <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-black animate-pulse">
               ★ FREE HIT
             </span>
           )}
-          {!active?.isSuperOver && active && Math.floor(active.legalBalls / 6) < 2 && (
-            <span className="px-2 py-0.5 rounded bg-sky-500/80 text-white text-[9px] font-black">
-              POWERPLAY
+          {chaseInfo && (
+            <span
+              className={`sm:hidden px-2 py-0.5 rounded border text-[9px] font-black tnum ${
+                chaseInfo.pressureLevel === "HIGH"
+                  ? "bg-rose-950/90 border-rose-400 text-rose-200 animate-pulse"
+                  : chaseInfo.pressureLevel === "MED"
+                  ? "bg-amber-950/90 border-amber-400 text-amber-200"
+                  : "bg-slate-950/85 border-emerald-400/50 text-emerald-200"
+              }`}
+            >
+              Need {chaseInfo.needed} ({chaseInfo.ballsLeft}b) • RRR {chaseInfo.rrr}
             </span>
           )}
         </div>
@@ -1623,40 +1702,142 @@ export function BroadcastMatchView({
         </div>
       )}
 
+      {/* TIED MATCH -> SUPER OVER INTERSTITIAL */}
+      {needsSuperOverPrompt && active && (
+        <div className="absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full rounded-3xl bg-slate-900 border-2 border-rose-400 p-5 text-center space-y-3 shadow-2xl">
+            <div className="text-xs font-black uppercase tracking-[0.25em] text-rose-300 animate-pulse">
+              ⚡ MATCH TIED • SUPER OVER!
+            </div>
+            <h2 className="text-xl font-black text-white tnum">
+              Scores Level at {match.innings1.runs} Apiece!
+            </h2>
+            {match.phase === "SUPER_OVER_1" ? (
+              <div className="text-xs sm:text-sm text-slate-200 font-bold">
+                1 Over Shootout • 2 Wickets Max —{" "}
+                <span className="text-amber-300">{getLineupById(match, active.battingTeamId).name}</span> bats first!
+              </div>
+            ) : (
+              <div className="text-xs sm:text-sm text-emerald-300 font-bold tnum">
+                {getLineupById(match, active.battingTeamId).name} needs{" "}
+                <span className="text-amber-300">{active.targetRuns} runs</span> in 6 balls to win!
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setSuperOverAcked(match.phase === "SUPER_OVER_1" ? "SO_1" : "SO_2")}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-500 via-amber-400 to-yellow-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider cursor-pointer shadow-lg"
+            >
+              {match.phase === "SUPER_OVER_1" ? "Start Super Over →" : "Start Super Over Chase →"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {match.phase === "COMPLETE" && (
         <div className="absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="max-w-md w-full rounded-3xl bg-slate-900 border-2 border-amber-400 p-6 text-center space-y-4 shadow-2xl">
+          <div className="max-w-lg w-full rounded-3xl bg-slate-900 border-2 border-amber-400 p-5 sm:p-6 text-center space-y-3.5 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <div className="text-xs font-black uppercase tracking-[0.25em] text-amber-300">🏆 MATCH RESULT</div>
             <h2 className="text-xl sm:text-2xl font-black text-white">{match.resultText}</h2>
             <div className="grid grid-cols-2 gap-2 text-xs tnum">
-              <div className="rounded-xl bg-slate-950/80 border border-white/10 p-2.5">
-                <div className="font-bold text-slate-400">
-                  {getLineupById(match, match.innings1.battingTeamId).code}
+              <div className="rounded-xl bg-slate-950/80 border border-white/10 p-2.5 flex flex-col items-center gap-1">
+                <div className="flex items-center gap-1.5 font-black text-slate-200">
+                  <CricketJerseySvg kit={getLineupById(match, match.innings1.battingTeamId).kit} size={20} />
+                  <span className="truncate">{getLineupById(match, match.innings1.battingTeamId).name}</span>
                 </div>
                 <div className="text-lg font-black text-white">
                   {match.innings1.runs}/{match.innings1.wickets}
                 </div>
-                <div className="text-[10px] text-slate-400">{formatOvers(match.innings1.legalBalls)} ov</div>
+                <div className="text-[10px] text-slate-400">
+                  {formatOvers(match.innings1.legalBalls)} / {match.innings1.maxOvers} ov
+                </div>
               </div>
               {match.innings2 && (
-                <div className="rounded-xl bg-slate-950/80 border border-white/10 p-2.5">
-                  <div className="font-bold text-slate-400">
-                    {getLineupById(match, match.innings2.battingTeamId).code}
+                <div className="rounded-xl bg-slate-950/80 border border-white/10 p-2.5 flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1.5 font-black text-slate-200">
+                    <CricketJerseySvg kit={getLineupById(match, match.innings2.battingTeamId).kit} size={20} />
+                    <span className="truncate">{getLineupById(match, match.innings2.battingTeamId).name}</span>
                   </div>
                   <div className="text-lg font-black text-white">
                     {match.innings2.runs}/{match.innings2.wickets}
                   </div>
-                  <div className="text-[10px] text-slate-400">{formatOvers(match.innings2.legalBalls)} ov</div>
+                  <div className="text-[10px] text-slate-400">
+                    {formatOvers(match.innings2.legalBalls)} / {match.innings2.maxOvers} ov
+                  </div>
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => onMatchComplete(match)}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider cursor-pointer shadow-lg"
-            >
-              Continue →
-            </button>
+
+            {match.superOver1 && match.superOver2 && (
+              <div className="px-3 py-1.5 rounded-xl bg-rose-950/60 border border-rose-400/40 text-[11px] font-black text-rose-200 tnum">
+                ⚡ Super Over: {getLineupById(match, match.superOver1.battingTeamId).code}{" "}
+                {match.superOver1.runs}/{match.superOver1.wickets} vs{" "}
+                {getLineupById(match, match.superOver2.battingTeamId).code}{" "}
+                {match.superOver2.runs}/{match.superOver2.wickets}
+              </div>
+            )}
+
+            {/* Post-Match Highlights */}
+            {highlights && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-left text-[11px] tnum">
+                {highlights.topScorer && (
+                  <div className="rounded-xl bg-slate-950/75 border border-amber-400/30 p-2">
+                    <div className="text-[9px] font-black uppercase text-amber-300">🏏 Top Scorer</div>
+                    <div className="font-black text-white truncate">{highlights.topScorer.playerName}</div>
+                    <div className="text-slate-300">
+                      {highlights.topScorer.runs} ({highlights.topScorer.balls}) • {highlights.topScorer.teamCode}
+                    </div>
+                  </div>
+                )}
+                {highlights.bestBowler && (
+                  <div className="rounded-xl bg-slate-950/75 border border-sky-400/30 p-2">
+                    <div className="text-[9px] font-black uppercase text-sky-300">🎯 Best Bowler</div>
+                    <div className="font-black text-white truncate">{highlights.bestBowler.playerName}</div>
+                    <div className="text-slate-300">
+                      {highlights.bestBowler.wickets}-{highlights.bestBowler.runsConceded} (
+                      {formatOvers(highlights.bestBowler.legalBalls)}) • {highlights.bestBowler.teamCode}
+                    </div>
+                  </div>
+                )}
+                <div className="rounded-xl bg-slate-950/75 border border-emerald-400/30 p-2">
+                  <div className="text-[9px] font-black uppercase text-emerald-300">
+                    {highlights.biggestHit ? "💥 Biggest Hit" : "🔥 Match Pulse"}
+                  </div>
+                  {highlights.biggestHit ? (
+                    <>
+                      <div className="font-black text-white truncate">{highlights.biggestHit.playerName}</div>
+                      <div className="text-amber-300 font-bold">
+                        {highlights.biggestHit.distanceM}m SIX ({highlights.biggestHit.teamCode})
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="font-black text-white">{highlights.boundariesCount} Boundaries</div>
+                      <div className="text-slate-300">{highlights.runOutsCount} Run-Outs</div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className={`grid gap-2 ${controlMode !== "ONLINE_FRIEND" ? "grid-cols-2" : "grid-cols-1"}`}>
+              {controlMode !== "ONLINE_FRIEND" && (
+                <button
+                  type="button"
+                  onClick={() => handleQuickRematch()}
+                  className="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-400/50 text-amber-300 font-black text-xs sm:text-sm uppercase tracking-wider cursor-pointer shadow-lg"
+                >
+                  🔁 Quick Rematch
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => onMatchComplete(match)}
+                className="py-3 rounded-xl bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider cursor-pointer shadow-lg"
+              >
+                Continue →
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1671,11 +1852,14 @@ export function BroadcastMatchView({
               background: `linear-gradient(90deg, ${battingLineup.kit.secondary}, ${battingLineup.kit.primary}, ${battingLineup.kit.secondary})`,
             }}
           >
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0 tnum">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 tnum">
               <div className="-mt-4 shrink-0">
                 <CricketJerseySvg kit={battingLineup.kit} size={38} />
               </div>
               <span className="text-sm sm:text-base font-black tracking-wider">{battingLineup.code}</span>
+              <span className="hidden md:inline text-xs font-bold opacity-85 truncate max-w-[140px]">
+                {battingLineup.name}
+              </span>
               <span className="px-2.5 py-0.5 rounded bg-slate-950/65 text-sm sm:text-base font-black">
                 {active.runs}/{active.wickets}
               </span>
@@ -1687,8 +1871,16 @@ export function BroadcastMatchView({
                   Six Distance : {lastSixDistM} m
                 </span>
               ) : chaseInfo ? (
-                <span className="hidden sm:inline-block px-2.5 py-0.5 rounded bg-slate-950/60 text-[11px] font-black text-amber-300">
-                  Need {chaseInfo.needed} ({chaseInfo.ballsLeft}b) • RRR {chaseInfo.rrr}
+                <span
+                  className={`hidden sm:inline-block px-2.5 py-0.5 rounded text-[11px] font-black ${
+                    chaseInfo.pressureLevel === "HIGH"
+                      ? "bg-rose-600 text-white animate-pulse"
+                      : chaseInfo.pressureLevel === "MED"
+                      ? "bg-slate-950/75 text-amber-300"
+                      : "bg-slate-950/60 text-emerald-300"
+                  }`}
+                >
+                  Target {active.targetRuns} • Need {chaseInfo.needed} ({chaseInfo.ballsLeft}b) • RRR {chaseInfo.rrr}
                 </span>
               ) : null}
             </div>
@@ -1838,24 +2030,9 @@ export function BroadcastMatchView({
                         <button
                           key={ov}
                           type="button"
-                          onClick={() => {
-                            clearDeliveryAnimTimers();
-                            prevStrikerIdRef.current = null;
-                            const resetMatch = createMatchState(
-                              `match_${Date.now()}`,
-                              match.teamA,
-                              match.teamB,
-                              { ...match.config, seed: Date.now(), oversPerInnings: ov },
-                              match.tossWinnerId,
-                              match.tossDecision,
-                            );
-                            setMatch(resetMatch);
-                            onMatchStateChange?.(resetMatch);
-                            applyIdleReset(selectedLength, selectedLine);
-                            setDrawer("NONE");
-                          }}
+                          onClick={() => handleQuickRematch(ov)}
                           className={`py-1.5 rounded-lg font-black border cursor-pointer tnum ${
-                            (match.config.oversPerInnings ?? 6) === ov
+                            (match.config.oversPerInnings ?? 5) === ov
                               ? "bg-amber-400 text-slate-950 border-white"
                               : "bg-slate-900 text-slate-200 border-white/15"
                           }`}

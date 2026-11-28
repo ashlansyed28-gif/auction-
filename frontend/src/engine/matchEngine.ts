@@ -942,3 +942,100 @@ function buildCommentary(
   }
   return `${fhPrefix}${batterName} tucks ${bowlerName}'s ${length.toLowerCase()} ball for ${runs} run${runs > 1 ? "s" : ""}.`;
 }
+
+export interface MatchHighlights {
+  topScorer: {
+    playerName: string;
+    teamCode: string;
+    runs: number;
+    balls: number;
+    fours: number;
+    sixes: number;
+  } | null;
+  bestBowler: {
+    playerName: string;
+    teamCode: string;
+    wickets: number;
+    runsConceded: number;
+    legalBalls: number;
+  } | null;
+  biggestHit: {
+    playerName: string;
+    teamCode: string;
+    distanceM: number;
+  } | null;
+  runOutsCount: number;
+  boundariesCount: number;
+}
+
+export function computeMatchHighlights(match: MatchState): MatchHighlights {
+  const inningsList = [match.innings1, match.innings2, match.superOver1, match.superOver2].filter(
+    (x): x is InningsState => Boolean(x),
+  );
+
+  let topScorer: MatchHighlights["topScorer"] = null;
+  let bestBowler: MatchHighlights["bestBowler"] = null;
+  let biggestHit: MatchHighlights["biggestHit"] = null;
+  let runOutsCount = 0;
+  let boundariesCount = 0;
+
+  for (const inn of inningsList) {
+    const batTeam = getLineupById(match, inn.battingTeamId);
+    const bowlTeam = getLineupById(match, inn.bowlingTeamId);
+
+    for (const b of Object.values(inn.batterStats)) {
+      if (
+        b.balls > 0 &&
+        (!topScorer || b.runs > topScorer.runs || (b.runs === topScorer.runs && b.balls < topScorer.balls))
+      ) {
+        topScorer = {
+          playerName: b.name,
+          teamCode: batTeam.code,
+          runs: b.runs,
+          balls: b.balls,
+          fours: b.fours,
+          sixes: b.sixes,
+        };
+      }
+    }
+
+    for (const bw of Object.values(inn.bowlerStats)) {
+      if (
+        bw.legalBalls > 0 &&
+        (!bestBowler ||
+          bw.wickets > bestBowler.wickets ||
+          (bw.wickets === bestBowler.wickets && bw.runsConceded < bestBowler.runsConceded))
+      ) {
+        bestBowler = {
+          playerName: bw.name,
+          teamCode: bowlTeam.code,
+          wickets: bw.wickets,
+          runsConceded: bw.runsConceded,
+          legalBalls: bw.legalBalls,
+        };
+      }
+    }
+
+    for (const ball of inn.ballLog) {
+      if (ball.runs === 4 || ball.runs === 6) boundariesCount += 1;
+      if (ball.isWicket && ball.wicketKind === "RUN_OUT") runOutsCount += 1;
+      if (ball.runs === 6 && typeof ball.shotDistanceM === "number") {
+        if (!biggestHit || ball.shotDistanceM > biggestHit.distanceM) {
+          biggestHit = {
+            playerName: ball.batterName,
+            teamCode: batTeam.code,
+            distanceM: ball.shotDistanceM,
+          };
+        }
+      }
+    }
+  }
+
+  return {
+    topScorer,
+    bestBowler,
+    biggestHit,
+    runOutsCount,
+    boundariesCount,
+  };
+}

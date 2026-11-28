@@ -73,6 +73,8 @@ export function QuickMatchSetup({
   const [subMode, setSubMode] = useState<QuickSubMode>(initialSubMode);
   const [kitAIdx, setKitAIdx] = useState(0);
   const [kitBIdx, setKitBIdx] = useState(1);
+  const [customNameA, setCustomNameA] = useState("");
+  const [customNameB, setCustomNameB] = useState("");
   const [pitch, setPitch] = useState<PitchCondition>("Dusty");
   const [wicketRule, setWicketRule] = useState<WicketRule>("LAST_MAN_STANDS");
   const [oversPerInnings, setOversPerInnings] = useState<number>(5);
@@ -102,19 +104,25 @@ export function QuickMatchSetup({
 
   const kitA = JERSEY_THEMES[kitAIdx];
   const kitB = JERSEY_THEMES[kitBIdx === kitAIdx ? (kitAIdx + 1) % JERSEY_THEMES.length : kitBIdx];
+  const resolvedNameA = customNameA.trim() || kitA.franchiseName;
+  const resolvedNameB = customNameB.trim() || kitB.franchiseName;
 
   const lineupA: MatchTeamLineup = {
     teamId: `qm-${kitA.id}-a`,
-    code: kitA.code,
-    name: kitA.franchiseName,
+    code: customNameA.trim()
+      ? customNameA.trim().replace(/[^a-zA-Z0-9]/g, "").slice(0, 4).toUpperCase() || kitA.code
+      : kitA.code,
+    name: resolvedNameA,
     kit: kitA,
     captainId: playersA[0]?.id ?? 1,
     players: playersA,
   };
   const lineupB: MatchTeamLineup = {
     teamId: `qm-${kitB.id}-b`,
-    code: kitB.code,
-    name: kitB.franchiseName,
+    code: customNameB.trim()
+      ? customNameB.trim().replace(/[^a-zA-Z0-9]/g, "").slice(0, 4).toUpperCase() || kitB.code
+      : kitB.code,
+    name: resolvedNameB,
     kit: kitB,
     captainId: playersB[0]?.id ?? 2,
     players: playersB,
@@ -278,8 +286,26 @@ export function QuickMatchSetup({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {(
           [
-            { side: "A" as const, label: subMode === "BOT" ? "Your Squad" : "Player 1 Squad", kit: kitA, kitIdx: kitAIdx, setKitIdx: setKitAIdx, squad: playersA },
-            { side: "B" as const, label: subMode === "BOT" ? "Bot Squad" : "Player 2 Squad", kit: kitB, kitIdx: kitBIdx, setKitIdx: setKitBIdx, squad: playersB },
+            {
+              side: "A" as const,
+              label: subMode === "BOT" ? "Your Squad" : "Player 1 Squad",
+              kit: kitA,
+              kitIdx: kitAIdx,
+              setKitIdx: setKitAIdx,
+              customName: customNameA,
+              setCustomName: setCustomNameA,
+              squad: playersA,
+            },
+            {
+              side: "B" as const,
+              label: subMode === "BOT" ? "Bot Squad" : "Player 2 Squad",
+              kit: kitB,
+              kitIdx: kitBIdx,
+              setKitIdx: setKitBIdx,
+              customName: customNameB,
+              setCustomName: setCustomNameB,
+              squad: playersB,
+            },
           ]
         ).map((col) => (
           <section
@@ -287,21 +313,31 @@ export function QuickMatchSetup({
             className="rounded-2xl bg-slate-900/90 border border-white/15 p-4 space-y-3"
           >
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <CricketJerseySvg kit={col.kit} size={40} />
-                <div>
+                <div className="min-w-0 space-y-1">
                   <div className="text-[10px] font-black uppercase text-amber-300">{col.label}</div>
-                  <select
-                    value={col.kitIdx}
-                    onChange={(e) => col.setKitIdx(Number(e.target.value))}
-                    className="mt-0.5 rounded-lg bg-slate-950 border border-white/15 px-2 py-1 text-xs font-black text-white"
-                  >
-                    {JERSEY_THEMES.map((k, idx) => (
-                      <option key={k.id} value={idx}>
-                        {k.code} — {k.franchiseName}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-wrap gap-1.5">
+                    <select
+                      value={col.kitIdx}
+                      onChange={(e) => col.setKitIdx(Number(e.target.value))}
+                      className="rounded-lg bg-slate-950 border border-white/15 px-2 py-1 text-xs font-black text-white"
+                    >
+                      {JERSEY_THEMES.map((k, idx) => (
+                        <option key={k.id} value={idx}>
+                          {k.code} — {k.franchiseName}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      maxLength={22}
+                      value={col.customName}
+                      onChange={(e) => col.setCustomName(e.target.value)}
+                      placeholder={`Custom Name (${col.kit.code})`}
+                      className="w-36 rounded-lg bg-slate-950 border border-white/15 px-2 py-1 text-xs font-bold text-amber-200 placeholder:text-slate-500"
+                    />
+                  </div>
                 </div>
               </div>
               {subMode === "BOT" && col.side === "A" && (
