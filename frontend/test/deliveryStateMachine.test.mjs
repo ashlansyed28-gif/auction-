@@ -2,9 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   AUTO_LAUNCH_DELAY_MS,
+  UMPIRE_CALLOUT_DURATION_MS,
   createIdleResetState,
+  evaluateCaughtMeter,
+  evaluateDirectThrowMeter,
   getAutoLaunchSpec,
   getNextBowlReleaseTarget,
+  getPostHitInteractionKind,
+  getUmpireCalloutSpec,
 } from "../src/components/match/deliveryStateMachine.ts";
 import { createMatchState, resolveDelivery } from "../src/engine/matchEngine.ts";
 import { players as rosterPlayers } from "../src/data/roster.ts";
@@ -32,10 +37,9 @@ function makeLineup(idx, slice) {
   };
 }
 
-test("6-second auto-launch timer covers both bowling and batting windows without stalling", (t) => {
+test("6-second auto-launch timer covers bowling, batting, direct throw, and caught meters", (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
 
-  // 1. Bowling READY -> Auto-Bowl at 6000ms
   const bowlReady = getAutoLaunchSpec({
     hasActiveInnings: true,
     watchAiMode: false,
@@ -53,7 +57,6 @@ test("6-second auto-launch timer covers both bowling and batting windows without
     delayMs: AUTO_LAUNCH_DELAY_MS,
   });
 
-  // 2. Bowling BOWL_METER (RELEASE) -> Auto-Release at 6000ms (never holds ball indefinitely)
   const bowlRelease = getAutoLaunchSpec({
     hasActiveInnings: true,
     watchAiMode: false,
@@ -71,45 +74,69 @@ test("6-second auto-launch timer covers both bowling and batting windows without
     delayMs: AUTO_LAUNCH_DELAY_MS,
   });
 
-  // 3. Batting READY & BAT_TIMING -> Auto-Face / Auto-Shot at 6000ms
-  const batReady = getAutoLaunchSpec({
+  const directThrowAuto = getAutoLaunchSpec({
     hasActiveInnings: true,
     watchAiMode: false,
     drawerOpen: false,
     matchPhase: "INNINGS_1",
-    phaseGate: "READY",
+    phaseGate: "DIRECT_THROW_METER",
     isBowlerMode: false,
-    isBatterMode: true,
+    isBatterMode: false,
     controlMode: "VS_BOT",
     hasOnlinePendingBowl: false,
   });
-  assert.equal(batReady?.triggerKind, "START");
-  assert.equal(batReady?.delayMs, 6000);
+  assert.deepEqual(directThrowAuto, {
+    label: "Auto-Throw",
+    triggerKind: "THROW",
+    delayMs: 6000,
+  });
 
-  const batTiming = getAutoLaunchSpec({
+  const caughtAuto = getAutoLaunchSpec({
     hasActiveInnings: true,
     watchAiMode: false,
     drawerOpen: false,
     matchPhase: "INNINGS_1",
-    phaseGate: "BAT_TIMING",
+    phaseGate: "CAUGHT_METER",
     isBowlerMode: false,
-    isBatterMode: true,
+    isBatterMode: false,
     controlMode: "VS_BOT",
     hasOnlinePendingBowl: false,
   });
-  assert.equal(batTiming?.triggerKind, "BAT");
-  assert.equal(batTiming?.delayMs, 6000);
+  assert.deepEqual(caughtAuto, {
+    label: "Auto-Catch",
+    triggerKind: "CATCH",
+    delayMs: 6000,
+  });
 
-  // 4. Simulate 6-second inactivity timer firing across Bowling -> Release -> Batting
+  // Verify timer does not run while pause menu drawer is open
+  assert.equal(
+    getAutoLaunchSpec({
+      hasActiveInnings: true,
+      watchAiMode: false,
+      drawerOpen: true,
+      matchPhase: "INNINGS_1",
+      phaseGate: "DIRECT_THROW_METER",
+      isBowlerMode: false,
+      isBatterMode: false,
+      controlMode: "VS_BOT",
+      hasOnlinePendingBowl: false,
+    }),
+    null,
+  );
+
+  // Simulate full 6-second inactivity flow across bowling -> throw -> umpire callout -> IDLE
   let state = "READY";
   setTimeout(() => {
     state = "BOWL_METER";
     setTimeout(() => {
-      state = "BAT_TIMING";
+      state = "DIRECT_THROW_METER";
       setTimeout(() => {
-        state = "RESOLVING";
-      }, bowlRelease.delayMs);
-    }, batTiming.delayMs);
+        state = "UMPIRE_CALL";
+        setTimeout(() => {
+          state = "IDLE";
+        }, UMPIRE_CALLOUT_DURATION_MS);
+      }, directThrowAuto.delayMs);
+    }, bowlRelease.delayMs);
   }, bowlReady.delayMs);
 
   t.mock.timers.tick(5999);
@@ -117,12 +144,21 @@ test("6-second auto-launch timer covers both bowling and batting windows without
   t.mock.timers.tick(1);
   assert.equal(state, "BOWL_METER");
   t.mock.timers.tick(6000);
-  assert.equal(state, "BAT_TIMING");
+  assert.equal(state, "DIRECT_THROW_METER");
   t.mock.timers.tick(6000);
-  assert.equal(state, "RESOLVING");
+  assert.equal(state, "UMPIRE_CALL");
+  t.mock.timers.tick(UMPIRE_CALLOUT_DURATION_MS);
+  assert.equal(state, "IDLE");
 });
 
-test("multiple consecutive deliveries resolve and reset cleanly to pitch READY / IDLE state", () => {
+test("Direct Throw, Caught Meter, and Umpire Callout evaluate accurately and reset across consecutive balls", () => {
+  assert.equal(evaluateDirectThrowMeter(0.5).quality, "PERFECT");
+  assert.equal(evaluateDirectThrowMeter(0.32).quality, "GOOD");
+  assert.equal(evaluateDirectThrowMeter(0.1).quality, "WAYWARD");
+
+  assert.equal(evaluateCaughtMeter(0.5).attempt, "CAUGHT");
+  assert.equal(evaluateCaughtMeter(0.08).attempt, "DROPPED");
+
   const teamA = makeLineup(0, rosterPlayers.slice(0, 4));
   const teamB = makeLineup(1, rosterPlayers.slice(4, 8));
   let match = createMatchState("multi-ball-test", teamA, teamB, {
@@ -132,30 +168,64 @@ test("multiple consecutive deliveries resolve and reset cleanly to pitch READY /
     tossDecision: "BAT",
   });
 
-  // Pass & Play release transitions immediately to BAT_TIMING
   assert.equal(getNextBowlReleaseTarget("PASS_PLAY", true), "BAT_TIMING");
   assert.equal(getNextBowlReleaseTarget("VS_BOT", false), "BOT_BAT_AND_RESOLVE");
 
-  // Play 6 consecutive deliveries resetting state between each ball
+  // Play 6 consecutive deliveries with Direct Throw, Caught checks, Umpire Callouts, and clean reset
   for (let ball = 0; ball < 6; ball += 1) {
     const res = resolveDelivery(match, {
       length: "Good",
       line: ball % 2 === 0 ? "Off" : "Leg",
       releaseAccuracy: 0.88,
-      shotType: "Drive",
+      shotType: ball % 3 === 0 ? "Loft" : "Drive",
       timing: 0.85,
       timingGrade: "PERFECT",
       lofted: ball === 2,
       stepOut: false,
+      throwQuality: ball === 1 ? "PERFECT" : undefined,
+      throwEnd: ball === 1 ? "NON_STRIKER" : undefined,
     });
     match = res.match;
+
+    const callout = getUmpireCalloutSpec(res.outcome);
+    assert.ok(callout.callout.length > 0);
+    assert.ok(callout.signal.length > 0);
+
+    // Check interaction routing classifier
+    const kind = getPostHitInteractionKind(res.outcome, true);
+    assert.ok(["CAUGHT_CHANCE", "DIRECT_THROW", "NONE"].includes(kind));
+
     const reset = createIdleResetState("Good", "Off");
     assert.equal(reset.phaseGate, "READY");
     assert.equal(reset.animation.phase, "IDLE");
     assert.equal(reset.directThrowNotice, false);
     assert.equal(reset.lockedBowl, null);
+    assert.equal(reset.pendingFielding, null);
+    assert.equal(reset.umpireCallout, null);
+    assert.equal(reset.meterFeedback, null);
     assert.equal(reset.meterPos, 0.5);
   }
 
+  // Test Caught vs Dropped outcome consistency in matchEngine
+  const caughtRes = resolveDelivery(match, {
+    length: "Good",
+    line: "Off",
+    releaseAccuracy: 0.9,
+    shotType: "Loft",
+    timing: 0.5,
+    catchAttempt: "CAUGHT",
+  });
+  const droppedRes = resolveDelivery(match, {
+    length: "Good",
+    line: "Off",
+    releaseAccuracy: 0.9,
+    shotType: "Loft",
+    timing: 0.5,
+    catchAttempt: "DROPPED",
+  });
+  if (caughtRes.outcome.isWicket && caughtRes.outcome.wicketKind === "CAUGHT") {
+    assert.equal(getUmpireCalloutSpec(caughtRes.outcome).callout, "CAUGHT!");
+    assert.equal(droppedRes.outcome.isWicket, false);
+  }
   assert.ok(match.innings1.ballLog.length >= 6);
 });

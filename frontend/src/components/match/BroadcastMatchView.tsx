@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
+  BallOutcome,
   BotDifficulty,
   BowlingLength,
   BowlingLine,
+  DeliveryInput,
   MatchState,
   ShotType,
   TimingGrade,
@@ -29,10 +31,18 @@ import {
   type DeliveryAnimationState,
 } from "./StadiumCanvas";
 import {
+  AUTO_LAUNCH_DELAY_MS,
+  UMPIRE_CALLOUT_DURATION_MS,
   createIdleResetState,
+  evaluateCaughtMeter,
+  evaluateDirectThrowMeter,
   getAutoLaunchSpec,
   getNextBowlReleaseTarget,
+  getPostHitInteractionKind,
+  getUmpireCalloutSpec,
   type PhaseGate,
+  type ThrowTargetEnd,
+  type UmpireCalloutSpec,
 } from "./deliveryStateMachine";
 
 export type MatchControlMode = "VS_BOT" | "PASS_PLAY" | "WATCH_AI" | "ONLINE_FRIEND";
@@ -151,6 +161,14 @@ export function BroadcastMatchView({
   const [autoLaunchLabel, setAutoLaunchLabel] = useState<string | null>(null);
   const [autoLaunchSec, setAutoLaunchSec] = useState<number | null>(null);
   const [directThrowNotice, setDirectThrowNotice] = useState(false);
+  const [throwTargetEnd, setThrowTargetEnd] = useState<ThrowTargetEnd>("NON_STRIKER");
+  const [meterFeedback, setMeterFeedback] = useState<string | null>(null);
+  const [umpireCallout, setUmpireCallout] = useState<UmpireCalloutSpec | null>(null);
+  const [pendingFielding, setPendingFielding] = useState<{
+    input: DeliveryInput;
+    previewOutcome: BallOutcome;
+    kind: "CAUGHT_CHANCE" | "DIRECT_THROW";
+  } | null>(null);
   const [isMuted, setIsMuted] = useState(soundEngine.isMuted());
   const [scorebugExpanded, setScorebugExpanded] = useState(true);
   const [drawer, setDrawer] = useState<"NONE" | "MENU" | "SCORECARD" | "COMMENTARY" | "POINTS">("NONE");
@@ -167,6 +185,7 @@ export function BroadcastMatchView({
   const lastRemoteBallCountRef = useRef<number>(0);
   const animTimeoutRef = useRef<number | null>(null);
   const throwTimeoutRef = useRef<number | null>(null);
+  const umpireTimeoutRef = useRef<number | null>(null);
 
   const clearDeliveryAnimTimers = useCallback(() => {
     if (animTimeoutRef.current !== null) {
@@ -177,7 +196,46 @@ export function BroadcastMatchView({
       window.clearTimeout(throwTimeoutRef.current);
       throwTimeoutRef.current = null;
     }
+    if (umpireTimeoutRef.current !== null) {
+      window.clearTimeout(umpireTimeoutRef.current);
+      umpireTimeoutRef.current = null;
+    }
   }, []);
+
+  const applyIdleReset = useCallback((len: BowlingLength, ln: BowlingLine) => {
+    const reset = createIdleResetState(len, ln);
+    setLockedBowl(reset.lockedBowl);
+    setTimingCallout(reset.timingCallout);
+    setDirectThrowNotice(reset.directThrowNotice);
+    setMeterFeedback(reset.meterFeedback);
+    setPendingFielding(reset.pendingFielding);
+    setUmpireCallout(reset.umpireCallout);
+    setMeterPos(reset.meterPos);
+    setAnimation(reset.animation);
+    setPhaseGate(reset.phaseGate);
+  }, []);
+
+  const triggerUmpirePostBall = useCallback(
+    (finalOutcome: BallOutcome, activeLen: BowlingLength, activeLn: BowlingLine) => {
+      const spec = getUmpireCalloutSpec(finalOutcome);
+      setUmpireCallout(spec);
+      setPhaseGate("UMPIRE_CALL");
+      setAnimation({
+        key: Date.now(),
+        outcome: finalOutcome,
+        phase: "UMPIRE_SIGNAL",
+        umpireSignal: spec.signal,
+        activeLength: activeLen,
+        activeLine: activeLn,
+      });
+      soundEngine.playUmpireSignal(spec.isWicket, spec.isBoundary);
+
+      umpireTimeoutRef.current = window.setTimeout(() => {
+        applyIdleReset(activeLen, activeLn);
+      }, UMPIRE_CALLOUT_DURATION_MS);
+    },
+    [applyIdleReset],
+  );
 
   useEffect(() => clearDeliveryAnimTimers, [clearDeliveryAnimTimers]);
 
@@ -227,16 +285,11 @@ export function BroadcastMatchView({
           }, 920);
         }
         animTimeoutRef.current = window.setTimeout(() => {
-          const reset = createIdleResetState(latest.length, latest.line);
-          setTimingCallout(reset.timingCallout);
-          setDirectThrowNotice(reset.directThrowNotice);
-          setMeterPos(reset.meterPos);
-          setAnimation(reset.animation);
-          setPhaseGate(reset.phaseGate);
+          triggerUmpirePostBall(latest, latest.length, latest.line);
         }, 1520);
       }
     }
-  }, [controlMode, initialMatch, clearDeliveryAnimTimers]);
+  }, [controlMode, initialMatch, clearDeliveryAnimTimers, triggerUmpirePostBall]);
 
   const active = getActiveInnings(match);
   const battingLineup = active ? getLineupById(match, active.battingTeamId) : match.teamA;
@@ -292,10 +345,22 @@ export function BroadcastMatchView({
   }, [active, striker, showStinger]);
 
   useEffect(() => {
-    if (phaseGate !== "BOWL_METER" && phaseGate !== "BAT_TIMING") return;
+    if (
+      phaseGate !== "BOWL_METER" &&
+      phaseGate !== "BAT_TIMING" &&
+      phaseGate !== "DIRECT_THROW_METER" &&
+      phaseGate !== "CAUGHT_METER"
+    ) {
+      return;
+    }
     let rafId = 0;
     const start = performance.now();
-    const speed = phaseGate === "BAT_TIMING" ? 0.0028 : 0.0024;
+    const speed =
+      phaseGate === "DIRECT_THROW_METER" || phaseGate === "CAUGHT_METER"
+        ? 0.0031
+        : phaseGate === "BAT_TIMING"
+        ? 0.0028
+        : 0.0024;
     const tick = (now: number) => {
       const t = (now - start) * speed;
       const mod = t % 2;
@@ -306,6 +371,125 @@ export function BroadcastMatchView({
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, [phaseGate]);
+
+  const finalizeDeliveryAnimation = useCallback(
+    (
+      finalInput: DeliveryInput,
+      options?: {
+        fromFielding?: boolean;
+        feedbackLabel?: string | null;
+        throwQuality?: "PERFECT" | "GOOD" | "WAYWARD";
+        catchAttempt?: "CAUGHT" | "DROPPED";
+        targetEnd?: ThrowTargetEnd;
+      },
+    ) => {
+      const { match: nextM, outcome } = resolveDelivery(match, finalInput);
+
+      clearDeliveryAnimTimers();
+      setPendingFielding(null);
+      setMeterFeedback(options?.feedbackLabel ?? null);
+      setTimingCallout(finalInput.timingGrade ?? null);
+      setLastSpeedKmh(outcome.ballSpeedKmh);
+      setLastSixDistM(outcome.runs === 6 ? outcome.shotDistanceM ?? 92 : null);
+      setDirectThrowNotice(false);
+      setPhaseGate("ANIMATING");
+      setAnimation({
+        key: Date.now(),
+        outcome,
+        phase: "RESOLVING",
+        activeLength: finalInput.length,
+        activeLine: finalInput.line,
+        speedPreviewKmh: outcome.ballSpeedKmh,
+        throwTargetEnd: options?.targetEnd,
+      });
+
+      if (options?.catchAttempt) {
+        soundEngine.playCatchResult(options.catchAttempt === "CAUGHT", outcome.isWicket);
+      } else if (options?.throwQuality) {
+        setDirectThrowNotice(true);
+        soundEngine.playDirectThrowResult(
+          options.throwQuality,
+          Boolean(outcome.isWicket && outcome.wicketKind === "RUN_OUT"),
+        );
+      } else {
+        soundEngine.playDeliveryAudio(outcome);
+        if (outcome.runs === 1 || outcome.runs === 2) {
+          throwTimeoutRef.current = window.setTimeout(() => {
+            setDirectThrowNotice(true);
+          }, 920);
+        }
+      }
+
+      if (outcome.isWicket) {
+        showStinger(
+          "WICKET",
+          outcome.wicketKind === "BOWLED"
+            ? "BOWLED HIM!"
+            : outcome.wicketKind === "RUN_OUT"
+            ? "RUN OUT!"
+            : outcome.wicketKind === "CAUGHT"
+            ? "CAUGHT!"
+            : "WICKET!",
+          `${outcome.batterName} ${outcome.wicketKind} b ${outcome.bowlerName}`,
+        );
+      } else if (outcome.runs === 6) {
+        showStinger("SIX", `SIX DISTANCE : ${outcome.shotDistanceM ?? 88}m`, outcome.batterName);
+      } else if (outcome.runs === 4) {
+        showStinger("FOUR", "CRACKING FOUR!", `${outcome.batterName} • ${outcome.shotType}`);
+      } else if (outcome.isFreeHitNext) {
+        showStinger("FREE_HIT", "NO BALL • FREE HIT!", "Next delivery is a Free Hit");
+      }
+
+      const resolveDurationMs = options?.fromFielding ? 980 : 1480;
+      animTimeoutRef.current = window.setTimeout(() => {
+        setMatch(nextM);
+        onMatchStateChange?.(nextM);
+        setLockedBowl(null);
+        setMeterFeedback(null);
+        setDirectThrowNotice(false);
+        triggerUmpirePostBall(outcome, finalInput.length, finalInput.line);
+      }, resolveDurationMs);
+    },
+    [match, onMatchStateChange, showStinger, clearDeliveryAnimTimers, triggerUmpirePostBall],
+  );
+
+  const handleCatchResolve = useCallback(() => {
+    if (!pendingFielding || phaseGate !== "CAUGHT_METER" || pendingFielding.kind !== "CAUGHT_CHANCE") {
+      return;
+    }
+    const evalCatch = evaluateCaughtMeter(meterPos);
+    finalizeDeliveryAnimation(
+      {
+        ...pendingFielding.input,
+        catchAttempt: evalCatch.attempt,
+      },
+      {
+        fromFielding: true,
+        feedbackLabel: evalCatch.label,
+        catchAttempt: evalCatch.attempt,
+      },
+    );
+  }, [pendingFielding, phaseGate, meterPos, finalizeDeliveryAnimation]);
+
+  const handleDirectThrowResolve = useCallback(() => {
+    if (!pendingFielding || phaseGate !== "DIRECT_THROW_METER" || pendingFielding.kind !== "DIRECT_THROW") {
+      return;
+    }
+    const evalThrow = evaluateDirectThrowMeter(meterPos);
+    finalizeDeliveryAnimation(
+      {
+        ...pendingFielding.input,
+        throwQuality: evalThrow.quality,
+        throwEnd: throwTargetEnd,
+      },
+      {
+        fromFielding: true,
+        feedbackLabel: evalThrow.label,
+        throwQuality: evalThrow.quality,
+        targetEnd: throwTargetEnd,
+      },
+    );
+  }, [pendingFielding, phaseGate, meterPos, throwTargetEnd, finalizeDeliveryAnimation]);
 
   const executeAndAnimateBall = useCallback(
     (
@@ -318,7 +502,7 @@ export function BroadcastMatchView({
       lofted = false,
       stepOut = false,
     ) => {
-      const { match: nextM, outcome } = resolveDelivery(match, {
+      const deliveryInput: DeliveryInput = {
         length,
         line,
         releaseAccuracy,
@@ -327,62 +511,72 @@ export function BroadcastMatchView({
         timingGrade,
         lofted,
         stepOut,
-      });
+      };
+      const preview = resolveDelivery(match, deliveryInput);
+      const canFieldInteract = Boolean(userControlsBowling && !watchAiMode && controlMode !== "ONLINE_FRIEND");
+      const interactionKind = getPostHitInteractionKind(preview.outcome, canFieldInteract);
 
-      clearDeliveryAnimTimers();
-      setTimingCallout(timingGrade);
-      setLastSpeedKmh(outcome.ballSpeedKmh);
-      setLastSixDistM(outcome.runs === 6 ? outcome.shotDistanceM ?? 92 : null);
-      setDirectThrowNotice(false);
-      setPhaseGate("ANIMATING");
-      setAnimation({
-        key: Date.now(),
-        outcome,
-        phase: "RESOLVING",
-        activeLength: length,
-        activeLine: line,
-        speedPreviewKmh: outcome.ballSpeedKmh,
-      });
-
-      soundEngine.playDeliveryAudio(outcome);
-
-      if (outcome.runs === 1 || outcome.runs === 2) {
-        throwTimeoutRef.current = window.setTimeout(() => {
-          setDirectThrowNotice(true);
-        }, 920);
+      if (interactionKind === "CAUGHT_CHANCE") {
+        clearDeliveryAnimTimers();
+        soundEngine.playPitchBounce(0.04);
+        soundEngine.playBatCrack("CLEAN", 0.14);
+        setLastSpeedKmh(preview.outcome.ballSpeedKmh);
+        setTimingCallout(timingGrade);
+        setMeterFeedback(null);
+        setPendingFielding({
+          input: deliveryInput,
+          previewOutcome: preview.outcome,
+          kind: "CAUGHT_CHANCE",
+        });
+        setPhaseGate("CAUGHT_METER");
+        setAnimation({
+          key: Date.now(),
+          outcome: preview.outcome,
+          phase: "BALL_CAUGHT_CHANCE",
+          activeLength: length,
+          activeLine: line,
+          speedPreviewKmh: preview.outcome.ballSpeedKmh,
+        });
+        return;
       }
 
-      if (outcome.isWicket) {
-        showStinger(
-          "WICKET",
-          outcome.wicketKind === "BOWLED"
-            ? "BOWLED HIM!"
-            : outcome.wicketKind === "RUN_OUT"
-            ? "RUN OUT!"
-            : "WICKET!",
-          `${outcome.batterName} ${outcome.wicketKind} b ${outcome.bowlerName}`,
-        );
-      } else if (outcome.runs === 6) {
-        showStinger("SIX", `SIX DISTANCE : ${outcome.shotDistanceM ?? 88}m`, outcome.batterName);
-      } else if (outcome.runs === 4) {
-        showStinger("FOUR", "CRACKING FOUR!", `${outcome.batterName} • ${outcome.shotType}`);
-      } else if (outcome.isFreeHitNext) {
-        showStinger("FREE_HIT", "NO BALL • FREE HIT!", "Next delivery is a Free Hit");
+      if (interactionKind === "DIRECT_THROW") {
+        clearDeliveryAnimTimers();
+        soundEngine.playPitchBounce(0.04);
+        soundEngine.playBatCrack("CLEAN", 0.14);
+        const defaultEnd: ThrowTargetEnd = preview.outcome.runs === 2 ? "STRIKER" : "NON_STRIKER";
+        setThrowTargetEnd(defaultEnd);
+        setLastSpeedKmh(preview.outcome.ballSpeedKmh);
+        setTimingCallout(timingGrade);
+        setMeterFeedback(null);
+        setPendingFielding({
+          input: deliveryInput,
+          previewOutcome: preview.outcome,
+          kind: "DIRECT_THROW",
+        });
+        setPhaseGate("DIRECT_THROW_METER");
+        setAnimation({
+          key: Date.now(),
+          outcome: preview.outcome,
+          phase: "AWAITING_THROW",
+          activeLength: length,
+          activeLine: line,
+          speedPreviewKmh: preview.outcome.ballSpeedKmh,
+          throwTargetEnd: defaultEnd,
+        });
+        return;
       }
 
-      animTimeoutRef.current = window.setTimeout(() => {
-        const reset = createIdleResetState(length, line);
-        setMatch(nextM);
-        onMatchStateChange?.(nextM);
-        setLockedBowl(reset.lockedBowl);
-        setTimingCallout(reset.timingCallout);
-        setDirectThrowNotice(reset.directThrowNotice);
-        setMeterPos(reset.meterPos);
-        setAnimation(reset.animation);
-        setPhaseGate(reset.phaseGate);
-      }, 1520);
+      finalizeDeliveryAnimation(deliveryInput);
     },
-    [match, onMatchStateChange, showStinger, clearDeliveryAnimTimers],
+    [
+      match,
+      userControlsBowling,
+      watchAiMode,
+      controlMode,
+      clearDeliveryAnimTimers,
+      finalizeDeliveryAnimation,
+    ],
   );
 
   const handleBowlRelease = useCallback(() => {
@@ -584,13 +778,27 @@ export function BroadcastMatchView({
     return () => clearTimeout(timer);
   }, [watchAiMode, match.phase, match.rngState, active, phaseGate, botDifficulty, aiSpeedMs, executeAndAnimateBall]);
 
-  const isBowlerMode = Boolean(userControlsBowling && phaseGate !== "BAT_TIMING");
-  const isBatterMode = Boolean(userControlsBatting && (!userControlsBowling || phaseGate === "BAT_TIMING"));
+  const isBowlerMode = Boolean(
+    userControlsBowling &&
+      phaseGate !== "BAT_TIMING" &&
+      phaseGate !== "DIRECT_THROW_METER" &&
+      phaseGate !== "CAUGHT_METER" &&
+      phaseGate !== "UMPIRE_CALL",
+  );
+  const isBatterMode = Boolean(
+    userControlsBatting &&
+      (!userControlsBowling || phaseGate === "BAT_TIMING") &&
+      phaseGate !== "DIRECT_THROW_METER" &&
+      phaseGate !== "CAUGHT_METER" &&
+      phaseGate !== "UMPIRE_CALL",
+  );
 
   const latestActionsRef = useRef({
     handleStartBall,
     handleBowlRelease,
     handleBatHit,
+    handleCatchResolve,
+    handleDirectThrowResolve,
     phaseGate,
     userControlsBatting,
     drawer,
@@ -599,12 +807,14 @@ export function BroadcastMatchView({
     handleStartBall,
     handleBowlRelease,
     handleBatHit,
+    handleCatchResolve,
+    handleDirectThrowResolve,
     phaseGate,
     userControlsBatting,
     drawer,
   };
 
-  // 6-Second Auto-Launch Timer (Bowling & Batting) + Clean Cancellation
+  // 6-Second Auto-Launch Timer (Bowling, Batting, Direct Throw & Caught Meters) + Clean Cancellation
   useEffect(() => {
     const spec = getAutoLaunchSpec({
       hasActiveInnings: Boolean(active),
@@ -639,6 +849,8 @@ export function BroadcastMatchView({
       if (spec.triggerKind === "START") latestActionsRef.current.handleStartBall();
       else if (spec.triggerKind === "RELEASE") latestActionsRef.current.handleBowlRelease();
       else if (spec.triggerKind === "BAT") latestActionsRef.current.handleBatHit(false);
+      else if (spec.triggerKind === "THROW") latestActionsRef.current.handleDirectThrowResolve();
+      else if (spec.triggerKind === "CATCH") latestActionsRef.current.handleCatchResolve();
     }, spec.delayMs);
 
     return () => {
@@ -659,24 +871,18 @@ export function BroadcastMatchView({
     onlinePendingBowl,
   ]);
 
-  // Animation / Timer Fallback: ensure non-waiting states never stall in ANIMATING even on tab switch / frame skip
+  // Animation / Timer Fallback: ensure non-waiting states never stall in ANIMATING or UMPIRE_CALL even on tab switch / frame skip
   useEffect(() => {
-    if (phaseGate !== "ANIMATING" || watchAiMode) return;
-    if (controlMode === "ONLINE_FRIEND" && animation.phase !== "RESOLVING") return;
+    if ((phaseGate !== "ANIMATING" && phaseGate !== "UMPIRE_CALL") || watchAiMode) return;
+    if (controlMode === "ONLINE_FRIEND" && animation.phase !== "RESOLVING" && animation.phase !== "UMPIRE_SIGNAL") return;
 
     const fallbackId = window.setTimeout(() => {
       clearDeliveryAnimTimers();
-      const reset = createIdleResetState(selectedLength, selectedLine);
-      setLockedBowl(reset.lockedBowl);
-      setTimingCallout(reset.timingCallout);
-      setDirectThrowNotice(reset.directThrowNotice);
-      setMeterPos(reset.meterPos);
-      setAnimation(reset.animation);
-      setPhaseGate(reset.phaseGate);
-    }, 2400);
+      applyIdleReset(selectedLength, selectedLine);
+    }, 2600);
 
     return () => window.clearTimeout(fallbackId);
-  }, [phaseGate, watchAiMode, controlMode, animation.phase, selectedLength, selectedLine, clearDeliveryAnimTimers]);
+  }, [phaseGate, watchAiMode, controlMode, animation.phase, selectedLength, selectedLine, clearDeliveryAnimTimers, applyIdleReset]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -691,7 +897,9 @@ export function BroadcastMatchView({
           activeEl.blur();
         }
         const gate = latestActionsRef.current.phaseGate;
-        if (gate === "BOWL_METER") latestActionsRef.current.handleBowlRelease();
+        if (gate === "DIRECT_THROW_METER") latestActionsRef.current.handleDirectThrowResolve();
+        else if (gate === "CAUGHT_METER") latestActionsRef.current.handleCatchResolve();
+        else if (gate === "BOWL_METER") latestActionsRef.current.handleBowlRelease();
         else if (gate === "BAT_TIMING") latestActionsRef.current.handleBatHit(false);
         else if (gate === "READY") latestActionsRef.current.handleStartBall();
       } else if (e.code === "ArrowLeft" && latestActionsRef.current.userControlsBatting) {
@@ -903,21 +1111,178 @@ export function BroadcastMatchView({
         )}
       </div>
 
-      {/* TOP-CENTER AUTO-LAUNCH COUNTDOWN & DIRECT THROW BADGE */}
-      {(autoLaunchLabel !== null && autoLaunchSec !== null) || directThrowNotice ? (
+      {/* TOP-CENTER AUTO-LAUNCH COUNTDOWN, METER FEEDBACK, DIRECT THROW & UMPIRE CALLOUT */}
+      {(autoLaunchLabel !== null && autoLaunchSec !== null) ||
+      directThrowNotice ||
+      meterFeedback ||
+      (phaseGate === "UMPIRE_CALL" && umpireCallout) ? (
         <div className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 pointer-events-none">
           {autoLaunchLabel !== null && autoLaunchSec !== null && (
             <div className="px-3 py-0.5 rounded-full bg-slate-950/80 border border-amber-400/50 text-[10px] font-black tracking-wider text-amber-300 shadow-lg tnum">
               ⏱ {autoLaunchLabel}: {autoLaunchSec}s
             </div>
           )}
-          {directThrowNotice && (
+          {meterFeedback && (
+            <div className="px-3.5 py-0.5 rounded-full bg-slate-950/90 border border-emerald-400/70 text-[10px] font-black tracking-wider text-emerald-300 shadow-lg">
+              {meterFeedback}
+            </div>
+          )}
+          {directThrowNotice && phaseGate === "ANIMATING" && (
             <div className="px-3.5 py-0.5 rounded-full bg-amber-400 text-slate-950 border border-white text-[10px] font-black tracking-widest uppercase shadow-xl animate-pulse">
-              ⚡ DIRECT THROW TO STUMPS
+              ⚡ DIRECT THROW TO {throwTargetEnd === "NON_STRIKER" ? "NON-STRIKER" : "STRIKER"} STUMPS
+            </div>
+          )}
+          {phaseGate === "UMPIRE_CALL" && umpireCallout && (
+            <div
+              className={`px-5 py-1.5 rounded-2xl border-2 backdrop-blur-md shadow-2xl text-center ${
+                umpireCallout.isWicket
+                  ? "bg-rose-950/95 border-rose-400 text-white"
+                  : umpireCallout.isBoundary
+                  ? "bg-amber-950/95 border-amber-300 text-amber-200"
+                  : "bg-slate-950/92 border-sky-400 text-sky-200"
+              }`}
+            >
+              <div className="text-xs sm:text-sm font-black tracking-widest uppercase">
+                {umpireCallout.signal === "OUT"
+                  ? "☝️ "
+                  : umpireCallout.signal === "SIX"
+                  ? "🙌 "
+                  : umpireCallout.signal === "FOUR"
+                  ? "🚩 "
+                  : umpireCallout.signal === "WIDE" || umpireCallout.signal === "NO_BALL"
+                  ? "🙆 "
+                  : "🧑‍⚖️ "}
+                UMPIRE: {umpireCallout.callout}
+              </div>
+              <div className="text-[10px] font-bold text-slate-200">{umpireCallout.detail}</div>
             </div>
           )}
         </div>
       ) : null}
+
+      {/* DIRECT THROW INTERACTIVE METER (BALL REACHES FIELDER) */}
+      {phaseGate === "DIRECT_THROW_METER" && !watchAiMode && (
+        <div className="absolute bottom-[80px] sm:bottom-[88px] right-2.5 z-30 w-64 sm:w-72 rounded-2xl bg-slate-950/92 backdrop-blur-md border-2 border-amber-400/80 p-3 space-y-2 shadow-2xl">
+          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+            <span className="text-amber-300">⚡ Direct Throw Meter</span>
+            <span className="text-slate-300 tnum">
+              {autoLaunchSec ?? Math.ceil(AUTO_LAUNCH_DELAY_MS / 1000)}s
+            </span>
+          </div>
+
+          {/* 6-second visual timer countdown bar */}
+          <div className="w-full h-1 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              className="h-full bg-amber-400 transition-[width] duration-200"
+              style={{ width: `${Math.max(0, ((autoLaunchSec ?? 6) / 6) * 100)}%` }}
+            />
+          </div>
+
+          {/* Target stumps end toggle */}
+          <div className="grid grid-cols-2 gap-1 text-[10px] font-black">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setThrowTargetEnd("STRIKER");
+                setAnimation((cur) => ({ ...cur, throwTargetEnd: "STRIKER" }));
+              }}
+              className={`py-1 rounded-lg border cursor-pointer ${
+                throwTargetEnd === "STRIKER"
+                  ? "bg-amber-400 text-slate-950 border-white"
+                  : "bg-slate-900 text-slate-300 border-white/15"
+              }`}
+            >
+              🎯 Striker End
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setThrowTargetEnd("NON_STRIKER");
+                setAnimation((cur) => ({ ...cur, throwTargetEnd: "NON_STRIKER" }));
+              }}
+              className={`py-1 rounded-lg border cursor-pointer ${
+                throwTargetEnd === "NON_STRIKER"
+                  ? "bg-amber-400 text-slate-950 border-white"
+                  : "bg-slate-900 text-slate-300 border-white/15"
+              }`}
+            >
+              🏃 Non-Striker
+            </button>
+          </div>
+
+          {/* Accuracy Bar (Wide -> Good -> Perfect Green Sweet Spot -> Good -> Overthrow) */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[8px] font-black uppercase text-slate-400">
+              <span>Early</span>
+              <span className="text-emerald-300">Perfect Target</span>
+              <span>Late</span>
+            </div>
+            <div className="relative w-full h-4 rounded-full overflow-hidden border border-white/30 bg-gradient-to-r from-rose-600 via-amber-400 to-rose-600">
+              <div className="absolute inset-y-0 left-[26%] w-[48%] bg-amber-400/55" />
+              <div className="absolute inset-y-0 left-[40%] w-[20%] bg-emerald-500 border-x border-white" />
+              <div
+                className="absolute -top-0.5 w-2 h-5 bg-white border border-slate-950 rounded-sm shadow"
+                style={{ left: `calc(${Math.max(4, Math.min(96, meterPos * 100))}% - 4px)` }}
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleDirectThrowResolve}
+            className="w-full py-2 rounded-xl bg-gradient-to-r from-amber-300 via-amber-400 to-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer animate-pulse"
+          >
+            ⚡ THROW NOW! (Space)
+          </button>
+        </div>
+      )}
+
+      {/* CAUGHT METER (BALL POPS UP / RETURNS TO BOWLER OR FIELDER) */}
+      {phaseGate === "CAUGHT_METER" && !watchAiMode && (
+        <div className="absolute bottom-[80px] sm:bottom-[88px] right-2.5 z-30 w-64 sm:w-72 rounded-2xl bg-slate-950/92 backdrop-blur-md border-2 border-emerald-400/85 p-3 space-y-2 shadow-2xl">
+          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+            <span className="text-emerald-300">🙌 Catch Opportunity!</span>
+            <span className="text-slate-300 tnum">
+              {autoLaunchSec ?? Math.ceil(AUTO_LAUNCH_DELAY_MS / 1000)}s
+            </span>
+          </div>
+
+          {/* 6-second visual timer countdown bar */}
+          <div className="w-full h-1 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              className="h-full bg-emerald-400 transition-[width] duration-200"
+              style={{ width: `${Math.max(0, ((autoLaunchSec ?? 6) / 6) * 100)}%` }}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-[8px] font-black uppercase text-slate-400">
+              <span>Drop</span>
+              <span className="text-emerald-300">Catch Zone</span>
+              <span>Drop</span>
+            </div>
+            <div className="relative w-full h-4 rounded-full overflow-hidden border border-white/30 bg-gradient-to-r from-rose-600 via-amber-400 to-rose-600">
+              <div className="absolute inset-y-0 left-[35%] w-[30%] bg-emerald-500 border-x border-white" />
+              <div
+                className="absolute -top-0.5 w-2 h-5 bg-white border border-slate-950 rounded-sm shadow"
+                style={{ left: `calc(${Math.max(4, Math.min(96, meterPos * 100))}% - 4px)` }}
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleCatchResolve}
+            className="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer animate-pulse"
+          >
+            🙌 CATCH! (Space)
+          </button>
+        </div>
+      )}
 
       {/* PLAYER LEFT BANNER */}
       {onlineLeftNotice && (

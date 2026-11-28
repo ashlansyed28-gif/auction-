@@ -65,6 +65,9 @@ export interface DeliveryInput {
   timingGrade?: TimingGrade;
   lofted?: boolean;
   stepOut?: boolean;
+  catchAttempt?: "CAUGHT" | "DROPPED";
+  throwQuality?: "PERFECT" | "GOOD" | "WAYWARD";
+  throwEnd?: "STRIKER" | "NON_STRIKER";
 }
 
 export interface BallOutcome {
@@ -506,6 +509,51 @@ export function resolveDelivery(
 
       if (extraType === "NO_BALL" && runs === 0 && aggression >= 0.55 && rand() < 0.35) {
         runs = 4;
+      }
+    }
+  }
+
+  // Interactive fielding overrides (Caught Meter & Direct Throw Meter)
+  if (input.catchAttempt === "CAUGHT" && extraType === "NONE" && !active.isFreeHit) {
+    if ((isWicket && wicketKind === "CAUGHT") || (!isWicket && runs === 0)) {
+      isWicket = true;
+      wicketKind = "CAUGHT";
+      runs = 0;
+    }
+  } else if (input.catchAttempt === "DROPPED") {
+    if (isWicket && wicketKind === "CAUGHT") {
+      isWicket = false;
+      wicketKind = undefined;
+      runs = 1;
+    } else if (!isWicket && runs === 0 && extraType === "NONE") {
+      runs = 1;
+    }
+  }
+
+  if (input.throwQuality && extraType === "NONE") {
+    if (input.throwQuality === "PERFECT") {
+      if (isWicket && wicketKind === "RUN_OUT") {
+        runs = Math.min(runs, 1);
+      } else if (!isWicket && runs === 2) {
+        isWicket = true;
+        wicketKind = "RUN_OUT";
+        runs = 1;
+      } else if (!isWicket && runs === 1) {
+        if (rand() < 0.45) {
+          isWicket = true;
+          wicketKind = "RUN_OUT";
+          runs = 0;
+        } else {
+          runs = 0;
+        }
+      }
+    } else if (input.throwQuality === "WAYWARD") {
+      if (isWicket && wicketKind === "RUN_OUT") {
+        isWicket = false;
+        wicketKind = undefined;
+        runs = Math.max(1, runs);
+      } else if (!isWicket && runs === 1) {
+        runs = 2;
       }
     }
   }

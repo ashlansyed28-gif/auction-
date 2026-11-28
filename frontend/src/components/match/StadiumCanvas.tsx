@@ -7,14 +7,17 @@ import type {
   PitchCondition,
   ShotType,
 } from "../../engine/matchEngine";
+import type { AnimationPhase, ThrowTargetEnd, UmpireSignal } from "./deliveryStateMachine";
 
 export interface DeliveryAnimationState {
   key: number;
   outcome: BallOutcome | null;
-  phase: "IDLE" | "BOWLING" | "AWAITING_HIT" | "RESOLVING";
+  phase: AnimationPhase;
   activeLength: BowlingLength;
   activeLine: BowlingLine;
   speedPreviewKmh?: number;
+  throwTargetEnd?: ThrowTargetEnd;
+  umpireSignal?: UmpireSignal;
 }
 
 export const FIELDER_SPOTS: Array<[number, number]> = [
@@ -782,7 +785,9 @@ export function StadiumCanvas({
       }
 
       // Shot Direction Aim Cone on pitch while batting (always matches exact ball hit vector)
-      shotAimGroup.visible = showCone && anim.phase !== "RESOLVING";
+      shotAimGroup.visible =
+        showCone &&
+        (anim.phase === "IDLE" || anim.phase === "BOWLING" || anim.phase === "AWAITING_HIT");
       if (shotAimGroup.visible) {
         const coneDir = getShotSwingDir("Drive", activeLn, aimDeg, batCamMode);
         shotAimGroup.position.set(-0.32 + worldShiftX, 0.044, 9.15);
@@ -798,9 +803,46 @@ export function StadiumCanvas({
           b.position.set([-0.055, 0.055][i], 0.74, 0);
           b.rotation.set(0, 0, Math.PI / 2);
         });
+        bowlerStumps.stumps.forEach((s, i) => {
+          s.position.set([-0.11, 0, 0.11][i], 0.365, 0);
+          s.rotation.set(0, 0, 0);
+        });
+        bowlerStumps.bails.forEach((b, i) => {
+          b.position.set([-0.055, 0.055][i], 0.74, 0);
+          b.rotation.set(0, 0, Math.PI / 2);
+        });
         tracerPoints.length = 0;
         tracerLine.geometry.setFromPoints([]);
         rippleMesh.material.opacity = 0;
+      }
+
+      // Red-Shirt Umpire Signals
+      if (anim.phase === "UMPIRE_SIGNAL") {
+        const sig = anim.umpireSignal ?? "DOT";
+        const wave = Math.sin(elapsedMs * 0.022);
+        if (sig === "OUT") {
+          umpireRig.rightArm.rotation.set(-Math.PI * 0.96, 0, 0.08);
+          umpireRig.leftArm.rotation.set(0, 0, 0);
+        } else if (sig === "SIX") {
+          umpireRig.rightArm.rotation.set(-Math.PI * 0.94, 0, -0.15);
+          umpireRig.leftArm.rotation.set(-Math.PI * 0.94, 0, 0.15);
+        } else if (sig === "FOUR") {
+          umpireRig.rightArm.rotation.set(-0.9, 0, -0.9 + wave * 0.45);
+          umpireRig.leftArm.rotation.set(0, 0, 0);
+        } else if (sig === "WIDE") {
+          umpireRig.rightArm.rotation.set(0, 0, -Math.PI * 0.48);
+          umpireRig.leftArm.rotation.set(0, 0, Math.PI * 0.48);
+        } else if (sig === "NO_BALL") {
+          umpireRig.rightArm.rotation.set(0, 0, -Math.PI * 0.48);
+          umpireRig.leftArm.rotation.set(0, 0, 0);
+        } else {
+          const chestT = Math.sin(Math.min(1, elapsedMs / 450) * Math.PI);
+          umpireRig.rightArm.rotation.set(-0.85 * chestT, 0, 0);
+          umpireRig.leftArm.rotation.set(0, 0, 0);
+        }
+      } else {
+        umpireRig.rightArm.rotation.set(0, 0, 0);
+        umpireRig.leftArm.rotation.set(0, 0, 0);
       }
 
       // Striker position & stance
@@ -909,6 +951,89 @@ export function StadiumCanvas({
         }
         ballShadow.position.set(ballMesh.position.x, 0.035, ballMesh.position.z);
         ballShadow.scale.setScalar(Math.max(0.45, 1 - ballMesh.position.y * 0.04));
+      } else if (anim.phase === "BALL_CAUGHT_CHANCE") {
+        // Ball pops up / back toward bowler & infielder ready to catch
+        const catchU = (elapsedMs % 1100) / 1100;
+        const cPos = new THREE.Vector3(0.45, 1.45, -8.5);
+        ballMesh.visible = true;
+        ballShadow.visible = true;
+        ballMesh.position.lerpVectors(batContactPos, cPos, catchU);
+        ballMesh.position.y += Math.sin(catchU * Math.PI) * 3.2;
+        ballShadow.position.set(ballMesh.position.x, 0.035, ballMesh.position.z);
+        ballShadow.scale.setScalar(Math.max(0.45, 1 - ballMesh.position.y * 0.04));
+
+        bowlerRig.root.position.set(0.45, 0, -8.8);
+        bowlerRig.rightArm.rotation.x = -2.15;
+        bowlerRig.leftArm.rotation.x = -2.15;
+        targetCamPos = new THREE.Vector3(2.4, 3.6, -15.5);
+        targetCamLook = cPos;
+      } else if (anim.phase === "AWAITING_THROW" && anim.outcome) {
+        // Ball has reached outfielder — fielder holds/preps Direct Throw toward selected end
+        const out = anim.outcome;
+        const { dirX, dirZ } = getShotSwingDir(
+          out.shotType,
+          out.line,
+          showCone ? aimDeg : undefined,
+          batCamMode,
+        );
+        const distMeters = out.runs === 2 ? 34 : 24;
+        const destX = batContactPos.x + dirX * distMeters;
+        const destZ = batContactPos.z + dirZ * distMeters;
+
+        let nearestIdx = 0;
+        let bestDist = Infinity;
+        fielderRigs.forEach((fr, idx) => {
+          const d = Math.hypot(fr.homeX - destX, fr.homeZ - destZ);
+          if (d < bestDist) {
+            bestDist = d;
+            nearestIdx = idx;
+          }
+        });
+
+        const stumpsZ = anim.throwTargetEnd === "NON_STRIKER" ? -10.1 : 10.1;
+        fielderRigs.forEach((fr, idx) => {
+          if (idx === nearestIdx) {
+            fr.rig.root.position.set(
+              fr.homeX + (destX - fr.homeX) * 0.78,
+              0,
+              fr.homeZ + (destZ - fr.homeZ) * 0.78,
+            );
+            fr.rig.root.lookAt(0, 0, stumpsZ);
+            fr.rig.rightArm.rotation.x = -1.65 + Math.sin(now * 0.008) * 0.15;
+          } else {
+            fr.rig.root.position.set(fr.homeX, 0, fr.homeZ);
+          }
+        });
+
+        const activeFielder = fielderRigs[nearestIdx];
+        ballMesh.visible = true;
+        ballShadow.visible = true;
+        ballMesh.position.set(
+          activeFielder.rig.root.position.x + 0.25,
+          1.15,
+          activeFielder.rig.root.position.z,
+        );
+        ballShadow.position.set(ballMesh.position.x, 0.035, ballMesh.position.z);
+        ballShadow.scale.setScalar(0.8);
+
+        targetCamPos = new THREE.Vector3(
+          ballMesh.position.x * 0.55 + 4,
+          7.5,
+          ballMesh.position.z * 0.55 + (bowlCam ? -10 : 10),
+        );
+        targetCamLook = new THREE.Vector3(0, 0.8, stumpsZ * 0.4);
+      } else if (anim.phase === "UMPIRE_SIGNAL") {
+        ballMesh.visible = false;
+        ballShadow.visible = false;
+        fielderRigs.forEach((fr) => {
+          fr.rig.root.position.set(fr.homeX, 0, fr.homeZ);
+          fr.rig.root.rotation.x = 0;
+          fr.rig.leftLeg.rotation.x = 0;
+          fr.rig.rightLeg.rotation.x = 0;
+          fr.rig.rightArm.rotation.x = 0;
+        });
+        targetCamPos = new THREE.Vector3(1.1, 2.55, -17.2);
+        targetCamLook = new THREE.Vector3(0, 1.35, -12.6);
       } else if (anim.phase === "RESOLVING" && anim.outcome) {
         const out = anim.outcome;
         ballMesh.visible = true;
@@ -970,8 +1095,10 @@ export function StadiumCanvas({
             const destZ = batContactPos.z + dirZ * distMeters;
             const maxHeight = out.runs === 6 ? 14.5 : out.runs === 4 ? 2.4 : 1.5;
 
-            const hasDirectThrow = out.runs === 1 || out.runs === 2;
-            const hitEndU = hasDirectThrow ? 0.62 : 1.0;
+            const hasDirectThrow =
+              out.runs === 1 || out.runs === 2 || (out.isWicket && out.wicketKind === "RUN_OUT");
+            const hitEndU = hasDirectThrow ? 0.55 : 1.0;
+            const targetStumpsZ = anim.throwTargetEnd === "NON_STRIKER" ? -10.1 : 10.1;
 
             let nearestIdx = 0;
             let bestDist = Infinity;
@@ -992,12 +1119,23 @@ export function StadiumCanvas({
                   ? 0.85 + Math.sin(hu * Math.PI) * maxHeight
                   : Math.max(0.11, 0.85 * (1 - hu) + Math.abs(Math.sin(hu * Math.PI * 2)) * maxHeight * (1 - hu * 0.5));
             } else {
-              // Direct throw back from intercepting fielder to the striker stumps!
+              // Direct throw back from intercepting fielder to the target stumps!
               const tu = (u - hitEndU) / (1 - hitEndU);
               const pickupPos = new THREE.Vector3(destX * 0.88, 0.85, destZ * 0.88);
-              const stumpsPos = new THREE.Vector3(0, 0.65, 10.1);
+              const stumpsPos = new THREE.Vector3(0, 0.65, targetStumpsZ);
               ballMesh.position.lerpVectors(pickupPos, stumpsPos, tu);
               ballMesh.position.y += Math.sin(tu * Math.PI) * 1.45;
+              if (out.isWicket && out.wicketKind === "RUN_OUT" && tu > 0.72) {
+                const wt = Math.min(1, (tu - 0.72) / 0.28);
+                const targetSet = anim.throwTargetEnd === "NON_STRIKER" ? bowlerStumps : batterStumps;
+                targetSet.stumps[1].rotation.x = wt * 1.25;
+                targetSet.stumps[1].position.z = wt * 0.45;
+                targetSet.stumps[2].rotation.z = -wt * 0.75;
+                targetSet.bails.forEach((b, i) => {
+                  b.position.set((i === 0 ? -0.3 : 0.3) * wt, 0.74 + Math.sin(wt * Math.PI) * 1.4, wt * 0.9);
+                  b.rotation.y = wt * 8;
+                });
+              }
             }
 
             if (tracerPoints.length < 52 && u <= hitEndU) {
@@ -1005,10 +1143,9 @@ export function StadiumCanvas({
               tracerLine.geometry.setFromPoints(tracerPoints);
             }
 
-            if (out.runs >= 1) {
-              if (hasDirectThrow && u > 0.72) {
-                // Smoothly pan camera back toward pitch stumps on direct throw
-                const stumpsTarget = new THREE.Vector3(0, 0.85, 9.6);
+            if (out.runs >= 1 || (out.isWicket && out.wicketKind === "RUN_OUT")) {
+              if (hasDirectThrow && u > 0.65) {
+                const stumpsTarget = new THREE.Vector3(0, 0.85, targetStumpsZ * 0.92);
                 targetCamPos = !bowlCam && batCamMode === "BATSMAN_END"
                   ? new THREE.Vector3(1.1, 3.2, 15.2)
                   : new THREE.Vector3(1.3, 3.8, -19.0);
@@ -1030,13 +1167,13 @@ export function StadiumCanvas({
             }
 
             fielderRigs.forEach((fr, idx) => {
-              if (idx === nearestIdx && out.runs > 0) {
-                const moveU = Math.min(1, u / (hasDirectThrow ? 0.62 : 0.85));
+              if (idx === nearestIdx && hasDirectThrow) {
+                const moveU = Math.min(1, u / hitEndU);
                 fr.rig.root.position.x = fr.homeX + (destX - fr.homeX) * moveU * 0.78;
                 fr.rig.root.position.z = fr.homeZ + (destZ - fr.homeZ) * moveU * 0.78;
-                if (hasDirectThrow && u > 0.62) {
-                  fr.rig.root.lookAt(0, 0, 10.1);
-                  const throwT = (u - 0.62) / 0.38;
+                if (u > hitEndU) {
+                  fr.rig.root.lookAt(0, 0, targetStumpsZ);
+                  const throwT = (u - hitEndU) / (1 - hitEndU);
                   fr.rig.rightArm.rotation.x = -Math.PI * 1.2 * Math.sin(throwT * Math.PI);
                   fr.rig.leftLeg.rotation.x = 0;
                   fr.rig.rightLeg.rotation.x = 0;
@@ -1046,9 +1183,18 @@ export function StadiumCanvas({
                   fr.rig.leftLeg.rotation.x = runCycle * 0.6;
                   fr.rig.rightLeg.rotation.x = -runCycle * 0.6;
                   fr.rig.rightArm.rotation.x = 0;
-                  if (u > 0.78 && out.runs === 4) {
-                    fr.rig.root.rotation.x = 0.65;
-                  }
+                }
+              } else if (idx === nearestIdx && out.runs > 0) {
+                const moveU = Math.min(1, u / 0.85);
+                fr.rig.root.position.x = fr.homeX + (destX - fr.homeX) * moveU * 0.78;
+                fr.rig.root.position.z = fr.homeZ + (destZ - fr.homeZ) * moveU * 0.78;
+                fr.rig.root.lookAt(destX, 0, destZ);
+                const runCycle = Math.sin(now * 0.025);
+                fr.rig.leftLeg.rotation.x = runCycle * 0.6;
+                fr.rig.rightLeg.rotation.x = -runCycle * 0.6;
+                fr.rig.rightArm.rotation.x = 0;
+                if (u > 0.78 && out.runs === 4) {
+                  fr.rig.root.rotation.x = 0.65;
                 }
               } else {
                 fr.rig.root.position.set(fr.homeX, 0, fr.homeZ);

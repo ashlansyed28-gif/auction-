@@ -223,6 +223,48 @@ class SoundEngine {
       this.playBatCrack("SOFT", 0.42);
     }
   }
+
+  /** Crisp Direct Throw release & target stumps hit / miss audio */
+  playDirectThrowResult(quality: "PERFECT" | "GOOD" | "WAYWARD", isRunOut: boolean) {
+    this.filteredNoise(0.08, 1200, 1.5, 0.12, 0.005, 0);
+    if (quality === "PERFECT") {
+      this.playStumpClatter(0.28);
+      if (isRunOut) {
+        this.playCrowdRoar("WICKET", 0.36);
+      } else {
+        this.tone(880, 0.14, "sine", 0.1, 0.28);
+      }
+    } else if (quality === "GOOD") {
+      this.tone(420, 0.09, "triangle", 0.09, 0.28, 220);
+    } else {
+      this.tone(240, 0.14, "sine", 0.08, 0.25, 140);
+    }
+  }
+
+  /** Bowler / fielder Caught Meter result SFX */
+  playCatchResult(caught: boolean, isWicket: boolean) {
+    if (caught) {
+      this.filteredNoise(0.05, 900, 1.8, 0.18, 0.004);
+      this.tone(540, 0.11, "triangle", 0.12, 0.03, 720);
+      if (isWicket) this.playCrowdRoar("WICKET", 0.1);
+    } else {
+      this.filteredNoise(0.07, 450, 1.4, 0.14, 0.005);
+      this.tone(190, 0.18, "sine", 0.09, 0.02, 110);
+    }
+  }
+
+  /** Subtle TV broadcast chime when the umpire raises a post-ball callout */
+  playUmpireSignal(isWicket: boolean, isBoundary: boolean) {
+    if (isWicket) {
+      this.tone(587.33, 0.16, "triangle", 0.09);
+      this.tone(880, 0.22, "triangle", 0.09, 0.1);
+    } else if (isBoundary) {
+      this.tone(659.25, 0.12, "sine", 0.07);
+      this.tone(987.77, 0.18, "sine", 0.07, 0.08);
+    } else {
+      this.tone(523.25, 0.09, "sine", 0.05);
+    }
+  }
 }
 
 export const soundEngine = new SoundEngine();
