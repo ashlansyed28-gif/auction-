@@ -174,6 +174,10 @@ export function BroadcastMatchView({
   const [isMuted, setIsMuted] = useState(soundEngine.isMuted());
   const [scorebugExpanded, setScorebugExpanded] = useState(true);
   const [superOverAcked, setSuperOverAcked] = useState<"NONE" | "SO_1" | "SO_2">("NONE");
+  const [introDismissedFor, setIntroDismissedFor] = useState<string | null>(null);
+  const [runnerAction, setRunnerAction] = useState<"RUN" | "SPRINT" | "CANCEL">("RUN");
+  const runnerActionRef = useRef<"RUN" | "SPRINT" | "CANCEL">("RUN");
+  runnerActionRef.current = runnerAction;
   const [drawer, setDrawer] = useState<"NONE" | "MENU" | "SCORECARD" | "COMMENTARY" | "POINTS">("NONE");
   const [animation, setAnimation] = useState<DeliveryAnimationState>({
     key: 1,
@@ -219,6 +223,8 @@ export function BroadcastMatchView({
     setPendingFielding(reset.pendingFielding);
     setUmpireCallout(reset.umpireCallout);
     setStinger(null);
+    setRunnerAction("RUN");
+    runnerActionRef.current = "RUN";
     setMeterPos(reset.meterPos);
     setAnimation(reset.animation);
     setPhaseGate(reset.phaseGate);
@@ -470,15 +476,21 @@ export function BroadcastMatchView({
 
       const resolveDurationMs = options?.fromFielding ? 980 : 1480;
       animTimeoutRef.current = window.setTimeout(() => {
-        setMatch(nextM);
-        onMatchStateChange?.(nextM);
+        const appliedRunner =
+          controlMode === "ONLINE_FRIEND" || watchAiMode ? undefined : runnerActionRef.current;
+        const resolved =
+          appliedRunner && appliedRunner !== "RUN"
+            ? resolveDelivery(match, { ...finalInput, runnerAction: appliedRunner })
+            : { match: nextM, outcome };
+        setMatch(resolved.match);
+        onMatchStateChange?.(resolved.match);
         setLockedBowl(null);
         setMeterFeedback(null);
         setDirectThrowNotice(false);
-        triggerUmpirePostBall(outcome, finalInput.length, finalInput.line);
+        triggerUmpirePostBall(resolved.outcome, finalInput.length, finalInput.line);
       }, resolveDurationMs);
     },
-    [match, onMatchStateChange, showStinger, clearDeliveryAnimTimers, triggerUmpirePostBall],
+    [match, controlMode, watchAiMode, onMatchStateChange, showStinger, clearDeliveryAnimTimers, triggerUmpirePostBall],
   );
 
   const handleCatchResolve = useCallback(() => {
@@ -821,12 +833,32 @@ export function BroadcastMatchView({
       phaseGate !== "UMPIRE_CALL",
   );
 
+  const needsSuperOverPrompt =
+    (match.phase === "SUPER_OVER_1" && (match.superOver1?.ballLog.length ?? 0) === 0 && superOverAcked === "NONE") ||
+    (match.phase === "SUPER_OVER_2" && (match.superOver2?.ballLog.length ?? 0) === 0 && superOverAcked !== "SO_2");
+
+  const currentIntroKey = active ? `${match.id}_${active.inningsNumber}_${active.isSuperOver}` : "";
+  const needsPreInningsIntro = Boolean(
+    active &&
+      !watchAiMode &&
+      controlMode !== "ONLINE_FRIEND" &&
+      match.phase !== "COMPLETE" &&
+      match.phase !== "INNINGS_BREAK" &&
+      active.ballLog.length === 0 &&
+      introDismissedFor !== currentIntroKey &&
+      !needsSuperOverPrompt,
+  );
+
   const latestActionsRef = useRef({
     handleStartBall,
     handleBowlRelease,
     handleBatHit,
     handleCatchResolve,
     handleDirectThrowResolve,
+    dismissIntro: () => {
+      if (currentIntroKey) setIntroDismissedFor(currentIntroKey);
+    },
+    needsPreInningsIntro,
     phaseGate,
     userControlsBatting,
     drawer,
@@ -837,21 +869,30 @@ export function BroadcastMatchView({
     handleBatHit,
     handleCatchResolve,
     handleDirectThrowResolve,
+    dismissIntro: () => {
+      if (currentIntroKey) setIntroDismissedFor(currentIntroKey);
+    },
+    needsPreInningsIntro,
     phaseGate,
     userControlsBatting,
     drawer,
   };
 
-  const needsSuperOverPrompt =
-    (match.phase === "SUPER_OVER_1" && (match.superOver1?.ballLog.length ?? 0) === 0 && superOverAcked === "NONE") ||
-    (match.phase === "SUPER_OVER_2" && (match.superOver2?.ballLog.length ?? 0) === 0 && superOverAcked !== "SO_2");
+  // Brief non-blocking auto-advance on pre-innings intro beat (4.2s)
+  useEffect(() => {
+    if (!needsPreInningsIntro || !currentIntroKey) return;
+    const t = window.setTimeout(() => {
+      setIntroDismissedFor(currentIntroKey);
+    }, 4200);
+    return () => window.clearTimeout(t);
+  }, [needsPreInningsIntro, currentIntroKey]);
 
   // 6-Second Auto-Launch Timer (Bowling, Batting, Direct Throw & Caught Meters) + Clean Cancellation
   useEffect(() => {
     const spec = getAutoLaunchSpec({
       hasActiveInnings: Boolean(active),
       watchAiMode,
-      drawerOpen: drawer !== "NONE" || needsSuperOverPrompt,
+      drawerOpen: drawer !== "NONE" || needsSuperOverPrompt || needsPreInningsIntro,
       matchPhase: match.phase,
       phaseGate,
       isBowlerMode,
@@ -927,6 +968,10 @@ export function BroadcastMatchView({
         const activeEl = document.activeElement;
         if (activeEl instanceof HTMLElement && activeEl.tagName === "BUTTON") {
           activeEl.blur();
+        }
+        if (latestActionsRef.current.needsPreInningsIntro) {
+          latestActionsRef.current.dismissIntro();
+          return;
         }
         const gate = latestActionsRef.current.phaseGate;
         if (gate === "DIRECT_THROW_METER") latestActionsRef.current.handleDirectThrowResolve();
@@ -1333,18 +1378,37 @@ export function BroadcastMatchView({
             </button>
           </div>
 
-          {/* Accuracy Bar (Wide -> Good -> Perfect Green Sweet Spot -> Good -> Overthrow) */}
+          {/* Accuracy Arc + Bar (Early -> Good -> Perfect Green Sweet Spot -> Good -> Late) */}
           <div className="space-y-1">
+            <svg viewBox="0 0 140 42" className="w-full h-9">
+              <path d="M 10 36 Q 70 2 130 36" fill="none" stroke="#dc2626" strokeWidth="7" strokeLinecap="round" />
+              <path d="M 38 20 Q 70 5 102 20" fill="none" stroke="#f59e0b" strokeWidth="7" strokeLinecap="round" />
+              <path d="M 56 14 Q 70 9 84 14" fill="none" stroke="#22c55e" strokeWidth="7" strokeLinecap="round" />
+              {(() => {
+                const x = 10 + meterPos * 120;
+                const y = 36 - Math.sin(meterPos * Math.PI) * 21;
+                return (
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r="5.5"
+                    fill={Math.abs(meterPos - 0.5) <= 0.1 ? "#4ade80" : "#ffffff"}
+                    stroke="#0f172a"
+                    strokeWidth="2"
+                  />
+                );
+              })()}
+            </svg>
             <div className="flex justify-between text-[8px] font-black uppercase text-slate-400">
               <span>Early</span>
-              <span className="text-emerald-300">Perfect Target</span>
+              <span className="text-emerald-300">Perfect Sweet Spot</span>
               <span>Late</span>
             </div>
-            <div className="relative w-full h-4 rounded-full overflow-hidden border border-white/30 bg-gradient-to-r from-rose-600 via-amber-400 to-rose-600">
+            <div className="relative w-full h-3.5 rounded-full overflow-hidden border border-white/30 bg-gradient-to-r from-rose-600 via-amber-400 to-rose-600">
               <div className="absolute inset-y-0 left-[26%] w-[48%] bg-amber-400/55" />
               <div className="absolute inset-y-0 left-[40%] w-[20%] bg-emerald-500 border-x border-white" />
               <div
-                className="absolute -top-0.5 w-2 h-5 bg-white border border-slate-950 rounded-sm shadow"
+                className="absolute -top-0.5 w-2 h-4 bg-white border border-slate-950 rounded-sm shadow"
                 style={{ left: `calc(${Math.max(4, Math.min(96, meterPos * 100))}% - 4px)` }}
               />
             </div>
@@ -1360,6 +1424,44 @@ export function BroadcastMatchView({
           </button>
         </div>
       )}
+
+      {/* LIVE RUNNER ACTION CONTROLS (BETWEEN WICKETS DURING CHASE / DIRECT THROW) */}
+      {!watchAiMode &&
+        active &&
+        (phaseGate === "DIRECT_THROW_METER" ||
+          (phaseGate === "ANIMATING" &&
+            animation.outcome &&
+            !animation.outcome.isWicket &&
+            (animation.outcome.runs === 1 || animation.outcome.runs === 2))) && (
+          <div className="absolute bottom-[74px] sm:bottom-[82px] left-2.5 z-30 flex items-center gap-1 rounded-2xl bg-slate-950/88 backdrop-blur-md border border-amber-400/55 p-1.5 shadow-2xl">
+            <span className="text-[9px] font-black uppercase text-amber-300 px-1">Runners</span>
+            {(
+              [
+                ["RUN", "🏃 RUN"],
+                ["SPRINT", "⚡ SPRINT"],
+                ["CANCEL", "✋ CANCEL"],
+              ] as const
+            ).map(([act, lbl]) => (
+              <button
+                key={act}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setRunnerAction(act)}
+                className={`px-2 py-1.5 rounded-xl text-[10px] font-black cursor-pointer border transition ${
+                  runnerAction === act
+                    ? act === "SPRINT"
+                      ? "bg-amber-400 text-slate-950 border-white"
+                      : act === "CANCEL"
+                      ? "bg-rose-500 text-white border-white"
+                      : "bg-emerald-400 text-slate-950 border-white"
+                    : "bg-slate-900 text-slate-200 border-white/15"
+                }`}
+              >
+                {lbl}
+              </button>
+            ))}
+          </div>
+        )}
 
       {/* CAUGHT METER (BALL POPS UP / RETURNS TO BOWLER OR FIELDER) */}
       {phaseGate === "CAUGHT_METER" && !watchAiMode && (
@@ -1412,25 +1514,91 @@ export function BroadcastMatchView({
         </div>
       )}
 
-      {/* BOWLER CHOICE AT START OF OVER */}
-      {isStartOfOver && userControlsBowling && phaseGate === "READY" && !watchAiMode && (
-        <div className="absolute top-28 left-2.5 z-20 max-w-[260px] rounded-xl bg-slate-950/85 border border-sky-400/45 p-2 space-y-1 shadow-xl">
-          <div className="text-[10px] font-black uppercase text-sky-300">Select Bowler (Over {Math.floor((active?.legalBalls ?? 0) / 6) + 1})</div>
-          <div className="flex flex-wrap gap-1">
-            {eligibleBowlers.map((b) => (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => setMatch((m) => setInningsBowler(m, b.id))}
-                className={`px-2 py-1 rounded text-[10px] font-black cursor-pointer border ${
-                  currentBowler?.id === b.id
-                    ? "bg-sky-400 text-slate-950 border-white"
-                    : "bg-slate-800 text-slate-200 border-white/15"
-                }`}
-              >
-                {b.name.split(" ").slice(-1)[0]} ({b.bowlOvr})
-              </button>
-            ))}
+      {/* PRE-INNINGS INTRO BEAT (SKIPPABLE VIA CLICK OR SPACE, AUTO-ADVANCES CLEANLY) */}
+      {needsPreInningsIntro && active && (
+        <div
+          className="absolute inset-0 z-30 bg-slate-950/60 backdrop-blur-[2px] flex items-center justify-center p-4"
+          onClick={() => setIntroDismissedFor(currentIntroKey)}
+        >
+          <div
+            className="max-w-md w-full rounded-3xl bg-slate-900/95 border-2 border-amber-400/75 p-5 text-center space-y-3 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-[11px] font-black uppercase tracking-[0.25em] text-amber-300">
+              {active.inningsNumber === 1 ? "1st Innings Kickoff" : "2nd Innings Run Chase"} • {active.maxOvers} Overs
+            </div>
+            <div className="flex items-center justify-center gap-4">
+              <div className="flex flex-col items-center">
+                <CricketJerseySvg kit={battingLineup.kit} size={42} />
+                <span className="text-xs font-black text-white">{battingLineup.name}</span>
+              </div>
+              <span className="text-sm font-black text-amber-300">VS</span>
+              <div className="flex flex-col items-center">
+                <CricketJerseySvg kit={bowlingLineup.kit} size={42} />
+                <span className="text-xs font-black text-white">{bowlingLineup.name}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-950/80 rounded-xl p-2.5 border border-white/10">
+              <div>
+                <div className="text-[9px] font-bold uppercase text-emerald-300">Openers</div>
+                <div className="font-black text-white truncate">{striker?.name}</div>
+                <div className="text-slate-300 truncate">{nonStriker?.name}</div>
+              </div>
+              <div>
+                <div className="text-[9px] font-bold uppercase text-sky-300">Opening Bowler</div>
+                <div className="font-black text-white truncate">{currentBowler?.name}</div>
+                <div className="text-slate-300">
+                  {currentBowler?.bowl || currentBowler?.type} • {currentBowler?.bowlOvr}
+                </div>
+              </div>
+            </div>
+            {active.targetRuns !== null && (
+              <div className="text-xs font-black text-amber-300">
+                Target: {active.targetRuns} runs in {active.maxOvers}.0 overs
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setIntroDismissedFor(currentIntroKey)}
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider cursor-pointer shadow-lg"
+            >
+              Skip / Play Ball (Space) →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* BOWLER CHOICE AT START OF OVER (SHOWS STYLE, RATING & QUOTA) */}
+      {isStartOfOver && userControlsBowling && phaseGate === "READY" && !watchAiMode && !needsPreInningsIntro && (
+        <div className="absolute top-28 left-2.5 z-20 max-w-[310px] rounded-2xl bg-slate-950/88 backdrop-blur-sm border border-sky-400/45 p-2.5 space-y-1.5 shadow-xl">
+          <div className="text-[10px] font-black uppercase text-sky-300">
+            Select Bowler • Over {Math.floor((active?.legalBalls ?? 0) / 6) + 1}/{active?.maxOvers ?? 5}
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            {eligibleBowlers.map((b) => {
+              const bwBalls = active?.bowlerStats[b.id]?.legalBalls ?? 0;
+              const maxPerBowler = active && active.maxOvers <= 2 ? 1 : 2;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setMatch((m) => setInningsBowler(m, b.id))}
+                  className={`px-2 py-1 rounded-lg text-left cursor-pointer border transition ${
+                    currentBowler?.id === b.id
+                      ? "bg-sky-400 text-slate-950 border-white"
+                      : "bg-slate-800/90 text-slate-200 border-white/15 hover:border-sky-300"
+                  }`}
+                >
+                  <div className="text-[10px] font-black truncate">
+                    {b.name.split(" ").slice(-1)[0]} ({b.bowlOvr})
+                  </div>
+                  <div className="text-[8px] opacity-85 truncate">
+                    {b.bowl || b.type} • {formatOvers(bwBalls)}/{maxPerBowler} ov
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1438,21 +1606,35 @@ export function BroadcastMatchView({
       {/* WCC PRO-CONTROL BATTING LEFT CLUSTER: LOFT/ADVANCE + SHOT COMPASS + CREASE FOOTWORK */}
       {isBatterMode && !watchAiMode && (phaseGate === "READY" || phaseGate === "BAT_TIMING") && (
         <div className="absolute bottom-[74px] sm:bottom-[82px] left-2.5 z-20 flex flex-col gap-1.5">
-          {/* LOFT % Ring + ADVANCE Circular Buttons (WCC Pro-Control Left Stack) */}
+          {/* LOFT Charge Ring + ADVANCE Circular Buttons (WCC Pro-Control Left Stack) */}
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setLoftToggle((v) => !v)}
-              className={`w-11 h-11 rounded-full border-2 flex flex-col items-center justify-center text-[8px] font-black shadow-xl cursor-pointer transition ${
+              className={`relative w-12 h-12 rounded-full flex flex-col items-center justify-center text-[8px] font-black shadow-xl cursor-pointer transition ${
                 loftToggle
-                  ? "bg-gradient-to-b from-amber-300 to-amber-500 border-white text-slate-950 scale-105"
-                  : "bg-slate-950/80 border-cyan-400/80 text-cyan-200 hover:border-amber-300"
+                  ? "bg-gradient-to-b from-amber-300 to-amber-500 text-slate-950 scale-105"
+                  : "bg-slate-950/85 text-cyan-200 hover:text-white"
               }`}
-              title="Toggle Lofted Shot"
+              title="Toggle Lofted Shot Charge"
             >
-              <span className="text-[10px] leading-none">{loftToggle ? "100%" : "LOFT"}</span>
-              <span className="text-[7px] opacity-85">{loftToggle ? "LOFT ON" : "GROUND"}</span>
+              <svg viewBox="0 0 40 40" className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
+                <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
+                <circle
+                  cx="20"
+                  cy="20"
+                  r="18"
+                  fill="none"
+                  stroke={loftToggle ? "#ffffff" : "#22d3ee"}
+                  strokeWidth="3"
+                  strokeDasharray="113"
+                  strokeDashoffset={loftToggle ? 0 : 72}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span className="text-[10px] leading-none relative z-10">{loftToggle ? "100%" : "LOFT"}</span>
+              <span className="text-[7px] opacity-85 relative z-10">{loftToggle ? "CHARGED" : "GROUND"}</span>
             </button>
 
             <button
@@ -1530,11 +1712,29 @@ export function BroadcastMatchView({
         </div>
       )}
 
-      {/* WCC BOWLING LINE PAD LEFT (ABOVE SCOREBUG) */}
+      {/* WCC BOWLING LENGTH & LINE PAD LEFT (ABOVE SCOREBUG) */}
       {isBowlerMode && !watchAiMode && (phaseGate === "READY" || phaseGate === "BOWL_METER") && (
-        <div className="absolute bottom-[74px] sm:bottom-[82px] left-2.5 z-20 flex items-center gap-1.5 rounded-2xl bg-slate-950/75 border border-white/15 p-2 shadow-xl">
-          <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-black uppercase text-sky-300">Line</span>
+        <div className="absolute bottom-[74px] sm:bottom-[82px] left-2.5 z-20 flex flex-col gap-1.5 rounded-2xl bg-slate-950/80 backdrop-blur-sm border border-white/15 p-2 shadow-xl">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[8px] font-black uppercase text-amber-300">Pitch Length</span>
+            <div className="flex gap-1">
+              {(["Yorker", "Full", "Good", "Short"] as const).map((len) => (
+                <button
+                  key={len}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setSelectedLength(len)}
+                  className={`px-2 py-0.5 rounded text-[9px] font-black cursor-pointer ${
+                    selectedLength === len ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-200"
+                  }`}
+                >
+                  {len}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[8px] font-black uppercase text-sky-300">Line Target</span>
             <div className="flex gap-1">
               {(["Off", "Middle", "Leg"] as const).map((ln) => (
                 <button
@@ -1542,7 +1742,7 @@ export function BroadcastMatchView({
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setSelectedLine(ln)}
-                  className={`px-2 py-1 rounded text-[10px] font-black cursor-pointer ${
+                  className={`px-2 py-0.5 rounded text-[9px] font-black cursor-pointer ${
                     selectedLine === ln ? "bg-sky-400 text-slate-950" : "bg-slate-800 text-slate-200"
                   }`}
                 >
@@ -1963,8 +2163,8 @@ export function BroadcastMatchView({
                   </span>
                 )}
                 {lastSpeedKmh && (
-                  <span className="hidden md:inline font-black text-amber-300">
-                    BALL SPEED : {lastSpeedKmh} kmph
+                  <span className="font-black text-amber-300">
+                    {lastSpeedKmh} <span className="text-[9px] opacity-85">kmph</span>
                   </span>
                 )}
               </div>

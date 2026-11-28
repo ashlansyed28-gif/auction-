@@ -627,8 +627,24 @@ export function StadiumCanvas({
       new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 }),
     );
     runArrow.rotation.x = Math.PI / 2;
-    runArrow.position.set(0.45, 0.04, -14.2);
+    runArrow.position.set(0.62, 0.04, -14.2);
     scene.add(runArrow);
+
+    // Bowling Length Zone Guide Lines (Yorker / Full / Good / Short)
+    const pitchGridGroup = new THREE.Group();
+    const gridMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false,
+    });
+    [1.6, 4.2, 6.4, 8.2].forEach((gz) => {
+      const strip = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.045), gridMat);
+      strip.rotation.x = -Math.PI / 2;
+      strip.position.set(0, 0.036, gz);
+      pitchGridGroup.add(strip);
+    });
+    scene.add(pitchGridGroup);
 
     // 3D Stumps & LED Bails
     const batterStumps = buildStumpsRig();
@@ -815,6 +831,7 @@ export function StadiumCanvas({
       targetRing.scale.set(pulseScale, pulseScale, 1);
 
       runArrow.visible = allowPick;
+      pitchGridGroup.visible = allowPick;
 
       if (targetRing.visible) {
         const swingMidX =
@@ -921,30 +938,64 @@ export function StadiumCanvas({
         umpireRig.leftArm.rotation.set(0, 0, 0);
       }
 
-      // Striker position & stance
-      strikerRig.root.position.x = -0.4 + worldShiftX;
-      if (anim.phase === "RESOLVING" && anim.outcome && effectiveMs >= 320) {
-        const swingT = Math.min(1, (effectiveMs - 320) / 260);
-        const shot = anim.outcome.shotType;
-        if (shot === "Defend") {
-          strikerRig.torso.rotation.x = 0.28 * Math.sin(swingT * Math.PI);
-          strikerRig.rightArm.rotation.x = -0.65 * Math.sin(swingT * Math.PI);
-        } else if (shot === "Loft" || shot === "Slog") {
-          strikerRig.torso.rotation.y = -0.75 * Math.sin(swingT * Math.PI * 0.85);
-          strikerRig.rightArm.rotation.x = -1.75 * Math.sin(swingT * Math.PI * 0.85);
-          strikerRig.leftArm.rotation.x = -1.45 * Math.sin(swingT * Math.PI * 0.85);
-        } else {
-          strikerRig.torso.rotation.y = -0.5 * Math.sin(swingT * Math.PI * 0.9);
-          strikerRig.rightArm.rotation.x = -1.35 * Math.sin(swingT * Math.PI * 0.9);
-          strikerRig.leftArm.rotation.x = -1.1 * Math.sin(swingT * Math.PI * 0.9);
-        }
+      // Striker & Non-Striker position, batting swing, and running between wickets
+      const isRunInProgress =
+        anim.phase === "AWAITING_THROW" ||
+        (anim.phase === "RESOLVING" &&
+          anim.outcome &&
+          effectiveMs > 480 &&
+          (anim.outcome.runs === 1 ||
+            anim.outcome.runs === 2 ||
+            (anim.outcome.isWicket && anim.outcome.wicketKind === "RUN_OUT")));
+
+      if (isRunInProgress) {
+        const runPhase =
+          anim.phase === "AWAITING_THROW"
+            ? 0.52 + 0.14 * Math.sin(now * 0.008)
+            : Math.min(1, (effectiveMs - 480) / 860);
+        const jogCycle = Math.sin(now * 0.024);
+        strikerRig.root.position.set(-0.68, 0, 9.15 - runPhase * 17.5);
+        strikerRig.root.rotation.y = Math.PI;
+        strikerRig.leftLeg.rotation.x = jogCycle * 0.55;
+        strikerRig.rightLeg.rotation.x = -jogCycle * 0.55;
+        strikerRig.rightArm.rotation.set(-0.45, 0, 0);
+        strikerRig.leftArm.rotation.set(-0.45, 0, 0);
+
+        nonStrikerRig.root.position.set(-1.15, 0, -9.15 + runPhase * 17.5);
+        nonStrikerRig.root.rotation.y = 0;
+        nonStrikerRig.leftLeg.rotation.x = -jogCycle * 0.55;
+        nonStrikerRig.rightLeg.rotation.x = jogCycle * 0.55;
       } else {
-        const tap = Math.sin(now * 0.0055);
-        strikerRig.torso.rotation.set(0.14, 0, 0);
-        strikerRig.leftLeg.rotation.x = -0.14;
-        strikerRig.rightLeg.rotation.x = 0.14;
-        strikerRig.rightArm.rotation.set(-0.55 + tap * 0.12, 0, -0.2);
-        strikerRig.leftArm.rotation.set(-0.55 + tap * 0.12, 0, 0.2);
+        strikerRig.root.position.set(-0.4 + worldShiftX, 0, 9.15);
+        strikerRig.root.rotation.y = Math.PI * 0.52;
+        nonStrikerRig.root.position.set(-1.15, 0, -9.15);
+        nonStrikerRig.root.rotation.y = 0;
+        nonStrikerRig.leftLeg.rotation.x = 0;
+        nonStrikerRig.rightLeg.rotation.x = 0;
+
+        if (anim.phase === "RESOLVING" && anim.outcome && effectiveMs >= 320) {
+          const swingT = Math.min(1, (effectiveMs - 320) / 260);
+          const shot = anim.outcome.shotType;
+          if (shot === "Defend") {
+            strikerRig.torso.rotation.x = 0.28 * Math.sin(swingT * Math.PI);
+            strikerRig.rightArm.rotation.x = -0.65 * Math.sin(swingT * Math.PI);
+          } else if (shot === "Loft" || shot === "Slog") {
+            strikerRig.torso.rotation.y = -0.75 * Math.sin(swingT * Math.PI * 0.85);
+            strikerRig.rightArm.rotation.x = -1.75 * Math.sin(swingT * Math.PI * 0.85);
+            strikerRig.leftArm.rotation.x = -1.45 * Math.sin(swingT * Math.PI * 0.85);
+          } else {
+            strikerRig.torso.rotation.y = -0.5 * Math.sin(swingT * Math.PI * 0.9);
+            strikerRig.rightArm.rotation.x = -1.35 * Math.sin(swingT * Math.PI * 0.9);
+            strikerRig.leftArm.rotation.x = -1.1 * Math.sin(swingT * Math.PI * 0.9);
+          }
+        } else {
+          const tap = Math.sin(now * 0.0055);
+          strikerRig.torso.rotation.set(0.14, 0, 0);
+          strikerRig.leftLeg.rotation.x = -0.14;
+          strikerRig.rightLeg.rotation.x = 0.14;
+          strikerRig.rightArm.rotation.set(-0.55 + tap * 0.12, 0, -0.2);
+          strikerRig.leftArm.rotation.set(-0.55 + tap * 0.12, 0, 0.2);
+        }
       }
 
       const keeperRise =

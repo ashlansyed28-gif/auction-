@@ -367,3 +367,67 @@ test("custom auction teams/rosters, Super Over tie-breaker, and post-match highl
   assert.ok(fin.superOver2 !== null);
   assert.ok(computeMatchHighlights(fin).topScorer !== null);
 });
+
+test("full delivery pipeline: bowling -> batting -> runner Sprint/Cancel + Direct Throw -> umpire callout", () => {
+  const teamA = makeLineup(0, rosterPlayers.slice(0, 4));
+  const teamB = makeLineup(1, rosterPlayers.slice(4, 8));
+
+  // Find a deterministic 1-run delivery seed and compare RUN vs SPRINT vs CANCEL
+  let foundOneRunSeed = null;
+  for (let s = 1; s <= 40; s += 1) {
+    const m = createMatchState(
+      `run-${s}`,
+      teamA,
+      teamB,
+      { seed: s, pitch: "Dusty", wicketRule: "LAST_MAN_STANDS", oversPerInnings: 2 },
+      teamA.teamId,
+      "BAT",
+    );
+    const out = resolveDelivery(m, {
+      length: "Good",
+      line: "Off",
+      releaseAccuracy: 0.9,
+      shotType: "Rotate",
+      timing: 0.72,
+    }).outcome;
+    if (!out.isWicket && out.extraType === "NONE" && out.runs === 1) {
+      foundOneRunSeed = s;
+      break;
+    }
+  }
+  assert.ok(foundOneRunSeed !== null);
+
+  const mBase = createMatchState(
+    "runner-check",
+    teamA,
+    teamB,
+    { seed: foundOneRunSeed, pitch: "Dusty", wicketRule: "LAST_MAN_STANDS", oversPerInnings: 2 },
+    teamA.teamId,
+    "BAT",
+  );
+  const sprintOut = resolveDelivery(mBase, {
+    length: "Good",
+    line: "Off",
+    releaseAccuracy: 0.9,
+    shotType: "Rotate",
+    timing: 0.72,
+    throwQuality: "GOOD",
+    throwEnd: "NON_STRIKER",
+    runnerAction: "SPRINT",
+  });
+  assert.equal(sprintOut.outcome.runs, 2);
+  assert.equal(getUmpireCalloutSpec(sprintOut.outcome).callout, "2 RUNS");
+
+  const cancelOut = resolveDelivery(mBase, {
+    length: "Good",
+    line: "Off",
+    releaseAccuracy: 0.9,
+    shotType: "Rotate",
+    timing: 0.72,
+    throwQuality: "GOOD",
+    throwEnd: "STRIKER",
+    runnerAction: "CANCEL",
+  });
+  assert.equal(cancelOut.outcome.runs, 0);
+  assert.equal(getUmpireCalloutSpec(cancelOut.outcome).callout, "DOT BALL");
+});

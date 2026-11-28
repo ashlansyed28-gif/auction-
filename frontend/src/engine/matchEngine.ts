@@ -68,6 +68,7 @@ export interface DeliveryInput {
   catchAttempt?: "CAUGHT" | "DROPPED";
   throwQuality?: "PERFECT" | "GOOD" | "WAYWARD";
   throwEnd?: "STRIKER" | "NON_STRIKER";
+  runnerAction?: "RUN" | "SPRINT" | "CANCEL";
 }
 
 export interface BallOutcome {
@@ -556,6 +557,25 @@ export function resolveDelivery(
         runs = Math.max(1, runs);
       } else if (!isWicket && runs === 1) {
         runs = 2;
+      }
+    }
+  }
+
+  // Runner action modifiers between wickets (Sprint for extra run or Cancel risky run)
+  if (input.runnerAction && extraType === "NONE") {
+    if (input.runnerAction === "CANCEL") {
+      if (isWicket && wicketKind === "RUN_OUT") {
+        isWicket = false;
+        wicketKind = undefined;
+        runs = Math.max(0, runs - 1);
+      } else if (!isWicket && (runs === 1 || runs === 2)) {
+        runs = runs === 2 ? 1 : 0;
+      }
+    } else if (input.runnerAction === "SPRINT" && !isWicket) {
+      if (runs === 1) {
+        runs = 2;
+      } else if (runs === 2 && input.throwQuality === "WAYWARD") {
+        runs = 3;
       }
     }
   }
